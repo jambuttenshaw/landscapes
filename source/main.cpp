@@ -4,7 +4,10 @@
 #include <donut/core/log.h>
 #include <nvrhi/utils.h>
 
-#include "basic_triangle.h"
+#include "landscapes_application.h"
+
+using namespace donut;
+
 
 #ifdef WIN32
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
@@ -28,12 +31,12 @@ int main(int __argc, const char** __argv)
     }
     
     {
-        BasicTriangle example(deviceManager);
-        if (example.Init())
+        LandscapesApplication application(deviceManager);
+        if (application.Init())
         {
-            deviceManager->AddRenderPassToBack(&example);
+            deviceManager->AddRenderPassToBack(&application);
             deviceManager->RunMessageLoop();
-            deviceManager->RemoveRenderPass(&example);
+            deviceManager->RemoveRenderPass(&application);
         }
     }
     
