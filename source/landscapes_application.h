@@ -3,6 +3,15 @@
 #include <donut/app/ApplicationBase.h>
 #include <donut/app/Camera.h>
 #include <donut/engine/View.h>
+#include <donut/engine/ShaderFactory.h>
+
+#include <donut/engine/BindingCache.h>
+#include <donut/render/GBuffer.h>
+
+#include <donut/render/DeferredLightingPass.h>
+#include <donut/render/GBufferFillPass.h>
+
+#include "landscapes_scene.h"
 
 
 extern const char* g_WindowTitle;
@@ -26,16 +35,23 @@ public:
 	void Render(nvrhi::IFramebuffer* framebuffer) override;
 
 private:
-	nvrhi::ShaderHandle m_VertexShader;
-	nvrhi::ShaderHandle m_PixelShader;
-	nvrhi::GraphicsPipelineHandle m_Pipeline;
+
+	nvrhi::TextureHandle CreateDeferredShadingOutput(nvrhi::IDevice* device, dm::uint2 size, dm::uint sampleCount);
+
+private:
+	std::shared_ptr<donut::engine::ShaderFactory> m_ShaderFactory;
+	std::unique_ptr<donut::engine::BindingCache> m_BindingCache;
+
 	nvrhi::CommandListHandle m_CommandList;
-
-	nvrhi::BindingLayoutHandle m_BindingLayout;
-	nvrhi::BindingSetHandle m_BindingSet;
-
-	nvrhi::BufferHandle m_ViewConstants;
 
 	donut::app::FirstPersonCamera m_Camera;
 	donut::engine::PlanarView m_View;
+
+	std::shared_ptr<donut::render::GBufferRenderTargets> m_GBuffer;
+	nvrhi::TextureHandle m_ShadedColour;
+
+	std::unique_ptr<donut::render::GBufferFillPass> m_GBufferPass;
+	std::unique_ptr<donut::render::DeferredLightingPass> m_DeferredLightingPass;
+
+	LandscapesScene m_Scene;
 };

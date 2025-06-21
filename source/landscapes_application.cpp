@@ -3,50 +3,56 @@
 #include <donut/engine/ShaderFactory.h>
 #include <nvrhi/utils.h>
 
+#include <donut/render/DrawStrategy.h>
 #include <donut/engine/CommonRenderPasses.h>
 
 using namespace donut;
 using namespace donut::math;
-
-#include <donut/shaders/view_cb.h>
 
 const char* g_WindowTitle = "Landscapes";
 
 
 bool LandscapesApplication::Init()
 {
-    std::filesystem::path appShaderPath = app::GetDirectoryWithExecutable() / "shaders/landscapes" / app::GetShaderTypeName(GetDevice()->getGraphicsAPI());
-
     auto nativeFS = std::make_shared<vfs::NativeFileSystem>();
-    engine::ShaderFactory shaderFactory(GetDevice(), nativeFS, appShaderPath);
 
-    m_VertexShader = shaderFactory.CreateShader("shaders.hlsl", "main_vs", nullptr, nvrhi::ShaderType::Vertex);
-    m_PixelShader = shaderFactory.CreateShader("shaders.hlsl", "main_ps", nullptr, nvrhi::ShaderType::Pixel);
+    std::filesystem::path appShaderPath = app::GetDirectoryWithExecutable() / "shaders/landscapes" / app::GetShaderTypeName(GetDevice()->getGraphicsAPI());
+    std::filesystem::path frameworkShaderPath = app::GetDirectoryWithExecutable() / "shaders/framework" / app::GetShaderTypeName(GetDevice()->getGraphicsAPI());
 
-    if (!m_VertexShader || !m_PixelShader)
-    {
-        return false;
-    }
+    std::shared_ptr<vfs::RootFileSystem> rootFS = std::make_shared<vfs::RootFileSystem>();
+    rootFS->mount("/shaders/donut", frameworkShaderPath);
+    rootFS->mount("/shaders/app", appShaderPath);
+
+    m_ShaderFactory = std::make_shared<engine::ShaderFactory>(GetDevice(), rootFS, "/shaders");
+    m_CommonPasses = std::make_shared<engine::CommonRenderPasses>(GetDevice(), m_ShaderFactory);
+    m_TextureCache = std::make_shared<engine::TextureCache>(GetDevice(), nativeFS, nullptr);
+    m_BindingCache = std::make_unique<engine::BindingCache>(GetDevice());
+
+    m_DeferredLightingPass = std::make_unique<render::DeferredLightingPass>(GetDevice(), m_CommonPasses);
+    m_DeferredLightingPass->Init(m_ShaderFactory);
 
     m_CommandList = GetDevice()->createCommandList();
 
-    m_Camera.LookAt(float3(0.f, 0.f, 2.f), float3(0.f, 0.f, -1.f));
+    m_Camera.LookAt(float3(0.f, 1.f, 2.f), float3(0.f, 0.f, 0));
 
-    m_ViewConstants = GetDevice()->createBuffer(
-        nvrhi::utils::CreateVolatileConstantBufferDesc(sizeof(PlanarViewConstants), "ViewConstants", engine::c_MaxRenderPassConstantBufferVersions)
-    );
-
-    // Create binding set / binding layout
-    nvrhi::BindingSetDesc bindingSetDesc;
-    bindingSetDesc.bindings = {
-        nvrhi::BindingSetItem::ConstantBuffer(0, m_ViewConstants)
-    };
-    nvrhi::utils::CreateBindingSetAndLayout(
-        GetDevice(), nvrhi::ShaderType::All, 0, bindingSetDesc, m_BindingLayout, m_BindingSet
-    );
-
-	return true;
+	return m_Scene.Init(GetDevice(), m_CommandList, m_TextureCache.get());
 }
+
+nvrhi::TextureHandle LandscapesApplication::CreateDeferredShadingOutput(nvrhi::IDevice* device, dm::uint2 size, dm::uint sampleCount)
+{
+    nvrhi::TextureDesc textureDesc;
+    textureDesc.dimension = nvrhi::TextureDimension::Texture2D;
+    textureDesc.initialState = nvrhi::ResourceStates::UnorderedAccess;
+    textureDesc.keepInitialState = true;
+    textureDesc.debugName = "ShadedColor";
+    textureDesc.isUAV = true;
+    textureDesc.format = nvrhi::Format::RGBA16_FLOAT;
+    textureDesc.width = size.x;
+    textureDesc.height = size.y;
+    textureDesc.sampleCount = sampleCount;
+    return device->createTexture(textureDesc);
+}
+
 
 bool LandscapesApplication::LoadScene(std::shared_ptr<vfs::IFileSystem> fs, const std::filesystem::path& sceneFileName)
 {
@@ -79,50 +85,83 @@ void LandscapesApplication::Animate(float fElapsedTimeSeconds)
 
 void LandscapesApplication::BackBufferResizing()
 {
-    m_Pipeline = nullptr;
+
 }
 
 void LandscapesApplication::Render(nvrhi::IFramebuffer* framebuffer)
 {
     const auto& fbInfo = framebuffer->getFramebufferInfo();
 
-    if (!m_Pipeline)
+    uint2 size = uint2(fbInfo.width, fbInfo.height);
+    if ((!m_GBuffer || any(m_GBuffer->GetSize() != size)))
     {
-        nvrhi::GraphicsPipelineDesc psoDesc;
-        psoDesc.VS = m_VertexShader;
-        psoDesc.PS = m_PixelShader;
-        psoDesc.primType = nvrhi::PrimitiveType::TriangleStrip;
-        psoDesc.bindingLayouts = { m_BindingLayout };
-        psoDesc.renderState.depthStencilState.depthTestEnable = false;
+	    // m_ShadedColour should always match GBuffer
+        m_GBuffer = nullptr;
+        m_ShadedColour = nullptr;
+        m_BindingCache->Clear();
+        m_DeferredLightingPass->ResetBindingCache();
 
-        m_Pipeline = GetDevice()->createGraphicsPipeline(psoDesc, framebuffer);
+        m_GBufferPass.reset();
+
+        m_GBuffer = std::make_shared<render::GBufferRenderTargets>();
+        m_GBuffer->Init(GetDevice(), size, 1, false, true);
+        m_ShadedColour = CreateDeferredShadingOutput(GetDevice(), size, 1);
     }
 
     nvrhi::Viewport windowViewport(static_cast<float>(fbInfo.width), static_cast<float>(fbInfo.height));
     m_View.SetViewport(windowViewport);
-    m_View.SetMatrices(m_Camera.GetWorldToViewMatrix(), perspProjD3DStyleReverse(dm::PI_f * 0.25f, windowViewport.width() / windowViewport.height(), 0.1f));
+    m_View.SetMatrices(
+        m_Camera.GetWorldToViewMatrix(), 
+        perspProjD3DStyleReverse(dm::PI_f * 0.25f, windowViewport.width() / windowViewport.height(), 0.1f)
+    );
     m_View.UpdateCache();
+
+    if (!m_GBufferPass)
+    {
+        render::GBufferFillPass::CreateParameters GBufferParams;
+        m_GBufferPass = std::make_unique<render::GBufferFillPass>(GetDevice(), m_CommonPasses);
+        m_GBufferPass->Init(*m_ShaderFactory, GBufferParams);
+    }
 
     m_CommandList->open();
 
-    PlanarViewConstants viewConstants;
-    m_View.FillPlanarViewConstants(viewConstants);
-    m_CommandList->writeBuffer(m_ViewConstants, &viewConstants, sizeof(viewConstants));
+    m_GBuffer->Clear(m_CommandList);
 
-    nvrhi::utils::ClearColorAttachment(m_CommandList, framebuffer, 0, nvrhi::Color(0.f));
+    render::DrawItem drawItem;
+    drawItem.instance = m_Scene.GetMeshInstance().get();
+    drawItem.mesh = drawItem.instance->GetMesh().get();
+    drawItem.geometry = drawItem.mesh->geometries[0].get();
+    drawItem.material = drawItem.geometry->material.get();
+    drawItem.buffers = drawItem.mesh->buffers.get();
+    drawItem.distanceToCamera = 0;
+    drawItem.cullMode = nvrhi::RasterCullMode::Back;
 
-    nvrhi::GraphicsState state;
-    state.pipeline = m_Pipeline;
-    state.framebuffer = framebuffer;
-    state.bindings = { m_BindingSet };
-    state.viewport = m_View.GetViewportState();
+    render::PassthroughDrawStrategy drawStrategy;
+    drawStrategy.SetData(&drawItem, 1);
 
-    m_CommandList->setGraphicsState(state);
+    render::GBufferFillPass::Context context;
 
-    nvrhi::DrawArguments args;
-    args.vertexCount = 4;
-    m_CommandList->draw(args);
+    render::RenderCompositeView(
+        m_CommandList,
+        &m_View,
+        &m_View,
+        *m_GBuffer->GBufferFramebuffer,
+        m_Scene.GetSceneGraph()->GetRootNode(),
+        drawStrategy,
+        *m_GBufferPass,
+        context);
 
+    render::DeferredLightingPass::Inputs deferredInputs;
+    deferredInputs.SetGBuffer(*m_GBuffer);
+    deferredInputs.ambientColorTop = 0.2f;
+    deferredInputs.ambientColorBottom = deferredInputs.ambientColorTop * float3(0.3f, 0.4f, 0.3f);
+    deferredInputs.lights = &m_Scene.GetLights();
+    deferredInputs.output = m_ShadedColour;
+
+    m_DeferredLightingPass->Render(m_CommandList, m_View, deferredInputs);
+
+    m_CommonPasses->BlitTexture(m_CommandList, framebuffer, m_ShadedColour, m_BindingCache.get());
+    
     m_CommandList->close();
     GetDevice()->executeCommandList(m_CommandList);
 }

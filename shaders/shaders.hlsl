@@ -7,8 +7,8 @@ ConstantBuffer<PlanarViewConstants> g_View : register(b0);
 
 static const float2 g_positions[] = {
 	float2(-0.5, -0.5),
-	float2(-0.5,  0.5),
 	float2( 0.5, -0.5),
+	float2(-0.5,  0.5),
 	float2( 0.5,  0.5)
 };
 
@@ -22,8 +22,8 @@ VSToPS main_vs(
 	uint i_vertexId : SV_VertexID
 )
 {
-    float4 worldPos = float4(g_positions[i_vertexId], 0, 1);
-    float4 clipPos = mul(worldPos, g_View.matWorldToClip);
+    float3 worldPos = float3(g_positions[i_vertexId], 0).xzy;
+    float4 clipPos = mul(float4(worldPos, 1), g_View.matWorldToClip);
 
     VSToPS vsOut;
 	vsOut.pos = clipPos;
