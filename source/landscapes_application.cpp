@@ -4,7 +4,10 @@
 #include <nvrhi/utils.h>
 
 #include <donut/render/DrawStrategy.h>
+#include <donut/render/GeometryPasses.h>
 #include <donut/engine/CommonRenderPasses.h>
+
+#include "donut/engine/FramebufferFactory.h"
 
 using namespace donut;
 using namespace donut::math;
@@ -38,7 +41,7 @@ bool LandscapesApplication::Init()
 	return m_Scene.Init(GetDevice(), m_CommandList, m_TextureCache.get());
 }
 
-nvrhi::TextureHandle LandscapesApplication::CreateDeferredShadingOutput(nvrhi::IDevice* device, dm::uint2 size, dm::uint sampleCount)
+void LandscapesApplication::CreateDeferredShadingOutput(nvrhi::IDevice* device, dm::uint2 size, dm::uint sampleCount)
 {
     nvrhi::TextureDesc textureDesc;
     textureDesc.dimension = nvrhi::TextureDimension::Texture2D;
@@ -50,9 +53,20 @@ nvrhi::TextureHandle LandscapesApplication::CreateDeferredShadingOutput(nvrhi::I
     textureDesc.width = size.x;
     textureDesc.height = size.y;
     textureDesc.sampleCount = sampleCount;
-    return device->createTexture(textureDesc);
+    m_ShadedColour = device->createTexture(textureDesc);
 }
 
+void LandscapesApplication::CreateGBufferPasses()
+{
+    render::GBufferFillPass::CreateParameters GBufferParams;
+    GBufferParams.useInputAssembler = false;
+
+    m_GBufferPass = std::make_unique<render::GBufferFillPass>(GetDevice(), m_CommonPasses);
+    m_GBufferPass->Init(*m_ShaderFactory, GBufferParams);
+
+    m_TerrainGBufferPass = std::make_unique<TerrainGBufferFillPass>(GetDevice(), m_CommonPasses);
+    m_TerrainGBufferPass->Init(*m_ShaderFactory, {});
+}
 
 bool LandscapesApplication::LoadScene(std::shared_ptr<vfs::IFileSystem> fs, const std::filesystem::path& sceneFileName)
 {
@@ -105,7 +119,7 @@ void LandscapesApplication::Render(nvrhi::IFramebuffer* framebuffer)
 
         m_GBuffer = std::make_shared<render::GBufferRenderTargets>();
         m_GBuffer->Init(GetDevice(), size, 1, false, true);
-        m_ShadedColour = CreateDeferredShadingOutput(GetDevice(), size, 1);
+        CreateDeferredShadingOutput(GetDevice(), size, 1);
     }
 
     nvrhi::Viewport windowViewport(static_cast<float>(fbInfo.width), static_cast<float>(fbInfo.height));
@@ -118,38 +132,67 @@ void LandscapesApplication::Render(nvrhi::IFramebuffer* framebuffer)
 
     if (!m_GBufferPass)
     {
-        render::GBufferFillPass::CreateParameters GBufferParams;
-        m_GBufferPass = std::make_unique<render::GBufferFillPass>(GetDevice(), m_CommonPasses);
-        m_GBufferPass->Init(*m_ShaderFactory, GBufferParams);
+        CreateGBufferPasses();
     }
 
     m_CommandList->open();
 
     m_GBuffer->Clear(m_CommandList);
 
-    render::DrawItem drawItem;
-    drawItem.instance = m_Scene.GetMeshInstance().get();
-    drawItem.mesh = drawItem.instance->GetMesh().get();
-    drawItem.geometry = drawItem.mesh->geometries[0].get();
-    drawItem.material = drawItem.geometry->material.get();
-    drawItem.buffers = drawItem.mesh->buffers.get();
-    drawItem.distanceToCamera = 0;
-    drawItem.cullMode = nvrhi::RasterCullMode::Back;
+    // Draw landscape
+    {
+        render::DrawItem drawItem;
+        drawItem.instance = m_Scene.GetLandscapeMeshInstance().get();
+        drawItem.mesh = drawItem.instance->GetMesh().get();
+        drawItem.geometry = drawItem.mesh->geometries[0].get();
+        drawItem.material = drawItem.geometry->material.get();
+        drawItem.buffers = drawItem.mesh->buffers.get();
+        drawItem.distanceToCamera = 0;
+        drawItem.cullMode = nvrhi::RasterCullMode::None;
 
-    render::PassthroughDrawStrategy drawStrategy;
-    drawStrategy.SetData(&drawItem, 1);
+        render::PassthroughDrawStrategy drawStrategy;
+        drawStrategy.SetData(&drawItem, 1);
 
-    render::GBufferFillPass::Context context;
+        TerrainGBufferFillPass::Context context;
 
-    render::RenderCompositeView(
-        m_CommandList,
-        &m_View,
-        &m_View,
-        *m_GBuffer->GBufferFramebuffer,
-        m_Scene.GetSceneGraph()->GetRootNode(),
-        drawStrategy,
-        *m_GBufferPass,
-        context);
+        landscapes::RenderTerrainView(
+            m_CommandList,
+            &m_View,
+            &m_View,
+            m_GBuffer->GBufferFramebuffer->GetFramebuffer(m_View),
+            drawStrategy,
+            *m_TerrainGBufferPass,
+            context
+        );
+    }
+
+    // Draw objects in scene
+    {
+        render::DrawItem drawItem;
+        drawItem.instance = m_Scene.GetCubeMeshInstance().get();
+        drawItem.mesh = drawItem.instance->GetMesh().get();
+        drawItem.geometry = drawItem.mesh->geometries[0].get();
+        drawItem.material = drawItem.geometry->material.get();
+        drawItem.buffers = drawItem.mesh->buffers.get();
+        drawItem.distanceToCamera = 0;
+        drawItem.cullMode = nvrhi::RasterCullMode::Back;
+
+        render::PassthroughDrawStrategy drawStrategy;
+        drawStrategy.SetData(&drawItem, 1);
+
+        render::GBufferFillPass::Context context;
+
+        render::RenderCompositeView(
+            m_CommandList,
+            &m_View,
+            &m_View,
+            *m_GBuffer->GBufferFramebuffer,
+            m_Scene.GetSceneGraph()->GetRootNode(),
+            drawStrategy,
+            *m_GBufferPass,
+            context
+        );
+    }
 
     render::DeferredLightingPass::Inputs deferredInputs;
     deferredInputs.SetGBuffer(*m_GBuffer);

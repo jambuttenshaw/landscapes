@@ -12,6 +12,7 @@
 #include <donut/render/GBufferFillPass.h>
 
 #include "landscapes_scene.h"
+#include "passes/terrain_pass.h"
 
 
 extern const char* g_WindowTitle;
@@ -36,7 +37,8 @@ public:
 
 private:
 
-	nvrhi::TextureHandle CreateDeferredShadingOutput(nvrhi::IDevice* device, dm::uint2 size, dm::uint sampleCount);
+	void CreateDeferredShadingOutput(nvrhi::IDevice* device, dm::uint2 size, dm::uint sampleCount);
+	void CreateGBufferPasses();
 
 private:
 	std::shared_ptr<donut::engine::ShaderFactory> m_ShaderFactory;
@@ -51,6 +53,8 @@ private:
 	nvrhi::TextureHandle m_ShadedColour;
 
 	std::unique_ptr<donut::render::GBufferFillPass> m_GBufferPass;
+	std::unique_ptr<TerrainGBufferFillPass> m_TerrainGBufferPass;
+
 	std::unique_ptr<donut::render::DeferredLightingPass> m_DeferredLightingPass;
 
 	LandscapesScene m_Scene;

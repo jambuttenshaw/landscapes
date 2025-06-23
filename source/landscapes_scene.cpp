@@ -149,56 +149,91 @@ bool LandscapesScene::Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandL
 {
     commandList->open();
 
-    m_Buffers = std::make_shared<engine::BufferGroup>();
-    m_Buffers->indexBuffer = CreateGeometryBuffer(device, commandList, "IndexBuffer", g_Indices, sizeof(g_Indices), false, false);
+    {
+        m_GreyMaterial = std::make_shared<engine::Material>();
+        m_GreyMaterial->name = "GreyMaterial";
+        m_GreyMaterial->useSpecularGlossModel = true;
+        m_GreyMaterial->baseOrDiffuseColor = float3(0.7f, 0.7f, 0.8f);
+        m_GreyMaterial->materialConstants = CreateMaterialConstantBuffer(device, commandList, m_GreyMaterial);
 
-    uint64_t vertexBufferSize = 0;
-    m_Buffers->getVertexBufferRange(engine::VertexAttribute::Position).setByteOffset(vertexBufferSize).setByteSize(sizeof(g_Positions)); vertexBufferSize += sizeof(g_Positions);
-    m_Buffers->getVertexBufferRange(engine::VertexAttribute::TexCoord1).setByteOffset(vertexBufferSize).setByteSize(sizeof(g_TexCoords)); vertexBufferSize += sizeof(g_TexCoords);
-    m_Buffers->getVertexBufferRange(engine::VertexAttribute::Normal).setByteOffset(vertexBufferSize).setByteSize(sizeof(g_Normals)); vertexBufferSize += sizeof(g_Normals);
-    m_Buffers->getVertexBufferRange(engine::VertexAttribute::Tangent).setByteOffset(vertexBufferSize).setByteSize(sizeof(g_Tangents)); vertexBufferSize += sizeof(g_Tangents);
-    m_Buffers->vertexBuffer = CreateGeometryBuffer(device, commandList, "VertexBuffer", nullptr, vertexBufferSize, true, false);
+        m_GreenMaterial = std::make_shared<engine::Material>();
+        m_GreenMaterial->name = "GreenMaterial";
+        m_GreenMaterial->useSpecularGlossModel = true;
+        m_GreenMaterial->baseOrDiffuseColor = float3(0.6f, 0.9f, 0.3f);
+        m_GreenMaterial->materialConstants = CreateMaterialConstantBuffer(device, commandList, m_GreenMaterial);
+    }
 
-    commandList->beginTrackingBufferState(m_Buffers->vertexBuffer, nvrhi::ResourceStates::CopyDest);
-    commandList->writeBuffer(m_Buffers->vertexBuffer, g_Positions, sizeof(g_Positions), m_Buffers->getVertexBufferRange(engine::VertexAttribute::Position).byteOffset);
-    commandList->writeBuffer(m_Buffers->vertexBuffer, g_TexCoords, sizeof(g_TexCoords), m_Buffers->getVertexBufferRange(engine::VertexAttribute::TexCoord1).byteOffset);
-    commandList->writeBuffer(m_Buffers->vertexBuffer, g_Normals, sizeof(g_Normals), m_Buffers->getVertexBufferRange(engine::VertexAttribute::Normal).byteOffset);
-    commandList->writeBuffer(m_Buffers->vertexBuffer, g_Tangents, sizeof(g_Tangents), m_Buffers->getVertexBufferRange(engine::VertexAttribute::Tangent).byteOffset);
-    commandList->setPermanentBufferState(m_Buffers->vertexBuffer, nvrhi::ResourceStates::ShaderResource);
+    {
+	    m_CubeBuffers = std::make_shared<engine::BufferGroup>();
+	    m_CubeBuffers->indexBuffer = CreateGeometryBuffer(device, commandList, "IndexBuffer", g_Indices, sizeof(g_Indices), false, false);
 
-    InstanceData instance{};
-    instance.transform = math::float3x4(transpose(math::affineToHomogeneous(math::affine3::identity())));
-    instance.prevTransform = instance.transform;
-    m_Buffers->instanceBuffer = CreateGeometryBuffer(device, commandList, "VertexBufferTransform", &instance, sizeof(instance), false, true);
+	    uint64_t vertexBufferSize = 0;
+	    m_CubeBuffers->getVertexBufferRange(engine::VertexAttribute::Position).setByteOffset(vertexBufferSize).setByteSize(sizeof(g_Positions)); vertexBufferSize += sizeof(g_Positions);
+	    m_CubeBuffers->getVertexBufferRange(engine::VertexAttribute::TexCoord1).setByteOffset(vertexBufferSize).setByteSize(sizeof(g_TexCoords)); vertexBufferSize += sizeof(g_TexCoords);
+	    m_CubeBuffers->getVertexBufferRange(engine::VertexAttribute::Normal).setByteOffset(vertexBufferSize).setByteSize(sizeof(g_Normals)); vertexBufferSize += sizeof(g_Normals);
+	    m_CubeBuffers->getVertexBufferRange(engine::VertexAttribute::Tangent).setByteOffset(vertexBufferSize).setByteSize(sizeof(g_Tangents)); vertexBufferSize += sizeof(g_Tangents);
+	    m_CubeBuffers->vertexBuffer = CreateGeometryBuffer(device, commandList, "VertexBuffer", nullptr, vertexBufferSize, true, false);
 
-	m_Material = std::make_shared<engine::Material>();
-	m_Material->name = "Plane Material";
-    m_Material->useSpecularGlossModel = true;
-    m_Material->materialConstants = CreateMaterialConstantBuffer(device, commandList, m_Material);
+	    commandList->beginTrackingBufferState(m_CubeBuffers->vertexBuffer, nvrhi::ResourceStates::CopyDest);
+	    commandList->writeBuffer(m_CubeBuffers->vertexBuffer, g_Positions, sizeof(g_Positions), m_CubeBuffers->getVertexBufferRange(engine::VertexAttribute::Position).byteOffset);
+	    commandList->writeBuffer(m_CubeBuffers->vertexBuffer, g_TexCoords, sizeof(g_TexCoords), m_CubeBuffers->getVertexBufferRange(engine::VertexAttribute::TexCoord1).byteOffset);
+	    commandList->writeBuffer(m_CubeBuffers->vertexBuffer, g_Normals, sizeof(g_Normals), m_CubeBuffers->getVertexBufferRange(engine::VertexAttribute::Normal).byteOffset);
+	    commandList->writeBuffer(m_CubeBuffers->vertexBuffer, g_Tangents, sizeof(g_Tangents), m_CubeBuffers->getVertexBufferRange(engine::VertexAttribute::Tangent).byteOffset);
+	    commandList->setPermanentBufferState(m_CubeBuffers->vertexBuffer, nvrhi::ResourceStates::ShaderResource);
+
+	    InstanceData instance{};
+	    instance.transform = math::float3x4(transpose(math::affineToHomogeneous(math::translation(float3(0, 0.5, 0)))));
+	    instance.prevTransform = instance.transform;
+	    m_CubeBuffers->instanceBuffer = CreateGeometryBuffer(device, commandList, "VertexBufferTransform", &instance, sizeof(instance), false, true);
+
+	    auto geometry = std::make_shared<engine::MeshGeometry>();
+	    geometry->material = m_GreyMaterial;
+	    geometry->numIndices = dim(g_Indices);
+	    geometry->numVertices = dim(g_Positions);
+
+	    m_CubeMeshInfo = std::make_shared<engine::MeshInfo>();
+	    m_CubeMeshInfo->name = "CubeMesh";
+	    m_CubeMeshInfo->buffers = m_CubeBuffers;
+	    m_CubeMeshInfo->objectSpaceBounds = math::box3(math::float3(-0.5f), math::float3(0.5f));
+	    m_CubeMeshInfo->totalIndices = geometry->numIndices;
+	    m_CubeMeshInfo->totalVertices = geometry->numVertices;
+	    m_CubeMeshInfo->geometries.push_back(geometry);
+    }
+
+    {
+        m_LandscapeBuffers = std::make_shared<engine::BufferGroup>();
+        InstanceData instance{};
+        instance.transform = math::float3x4(transpose(math::affineToHomogeneous(math::scaling(math::float3(100)))));
+        instance.prevTransform = instance.transform;
+        m_LandscapeBuffers->instanceBuffer = CreateGeometryBuffer(device, commandList, "VertexBufferTransform", &instance, sizeof(instance), false, true);
+
+        auto geometry = std::make_shared<engine::MeshGeometry>();
+        geometry->material = m_GreenMaterial;
+        geometry->numIndices = 0;
+        geometry->numVertices = 4;
+
+        m_LandscapeMeshInfo = std::make_shared<engine::MeshInfo>();
+        m_LandscapeMeshInfo->name = "LandscapeMesh";
+        m_LandscapeMeshInfo->buffers = m_LandscapeBuffers;
+        m_LandscapeMeshInfo->objectSpaceBounds = math::box3(math::float3(-0.5f), math::float3(0.5f));
+        m_LandscapeMeshInfo->totalIndices = geometry->numIndices;
+        m_LandscapeMeshInfo->totalVertices = geometry->numVertices;
+        m_LandscapeMeshInfo->geometries.push_back(geometry);
+    }
 
     commandList->close();
     device->executeCommandList(commandList);
-
-    auto geometry = std::make_shared<engine::MeshGeometry>();
-    geometry->material = m_Material;
-    geometry->numIndices = dim(g_Indices);
-    geometry->numVertices = dim(g_Positions);
-
-    m_MeshInfo = std::make_shared<engine::MeshInfo>();
-    m_MeshInfo->name = "CubeMesh";
-    m_MeshInfo->buffers = m_Buffers;
-    m_MeshInfo->objectSpaceBounds = math::box3(math::float3(-0.5f), math::float3(0.5f));
-    m_MeshInfo->totalIndices = geometry->numIndices;
-    m_MeshInfo->totalVertices = geometry->numVertices;
-    m_MeshInfo->geometries.push_back(geometry);
 
     m_SceneGraph = std::make_shared<engine::SceneGraph>();
     auto node = std::make_shared<engine::SceneGraphNode>();
     m_SceneGraph->SetRootNode(node);
 
-    m_MeshInstance = std::make_shared<engine::MeshInstance>(m_MeshInfo);
-    node->SetLeaf(m_MeshInstance);
+    m_CubeMeshInstance = std::make_shared<engine::MeshInstance>(m_CubeMeshInfo);
+    node->SetLeaf(m_CubeMeshInstance);
     node->SetName("CubeNode");
+
+    m_LandscapeMeshInstance = std::make_shared<engine::MeshInstance>(m_LandscapeMeshInfo);
+    m_SceneGraph->AttachLeafNode(node, m_LandscapeMeshInstance);
 
     auto sunLight = std::make_shared<engine::DirectionalLight>();
     m_SceneGraph->AttachLeafNode(node, sunLight);
