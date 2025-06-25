@@ -11,8 +11,8 @@ struct UIData
 	bool Wireframe = false;
 	bool BackFaceCulling = true;
 
-	bool DrawTerrain = true;
-	bool DrawObjects = false;
+	bool DrawTerrain = false;
+	bool DrawObjects = true;
 };
 
 

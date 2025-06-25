@@ -1,5 +1,7 @@
 #include "landscapes_scene.h"
 
+#include "terrain/terrain_mesh.h"
+
 using namespace donut;
 using namespace donut::math;
 
@@ -201,7 +203,21 @@ bool LandscapesScene::Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandL
     }
 
     {
+        std::vector<float2> terrainVertices;
+        std::vector<uint32_t> terrainIndices;
+        landscapes::CreateTerrainMesh({ 2, 2 }, terrainVertices, terrainIndices);
+
         m_LandscapeBuffers = std::make_shared<engine::BufferGroup>();
+        m_LandscapeBuffers->indexBuffer = CreateGeometryBuffer(device, commandList, "IndexBuffer", terrainIndices.data(), terrainIndices.size() * sizeof(terrainIndices[0]), false, false);
+
+        uint64_t vertexBufferSize = terrainVertices.size() * sizeof(terrainVertices[0]);
+        m_LandscapeBuffers->getVertexBufferRange(engine::VertexAttribute::Position).setByteOffset(0).setByteSize(vertexBufferSize);
+        m_LandscapeBuffers->vertexBuffer = CreateGeometryBuffer(device, commandList, "VertexBuffer", nullptr, vertexBufferSize, true, false);
+
+        commandList->beginTrackingBufferState(m_LandscapeBuffers->vertexBuffer, nvrhi::ResourceStates::CopyDest);
+        commandList->writeBuffer(m_LandscapeBuffers->vertexBuffer, terrainVertices.data(), vertexBufferSize, m_LandscapeBuffers->getVertexBufferRange(engine::VertexAttribute::Position).byteOffset);
+        commandList->setPermanentBufferState(m_LandscapeBuffers->vertexBuffer, nvrhi::ResourceStates::ShaderResource);
+
         InstanceData instance{};
         instance.transform = math::float3x4(transpose(math::affineToHomogeneous(math::scaling(math::float3(1)))));
         instance.prevTransform = instance.transform;
@@ -209,8 +225,8 @@ bool LandscapesScene::Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandL
 
         auto geometry = std::make_shared<engine::MeshGeometry>();
         geometry->material = m_GreenMaterial;
-        geometry->numIndices = 0;
-        geometry->numVertices = 10;
+        geometry->numIndices = static_cast<uint32_t>(terrainIndices.size());
+        geometry->numVertices = static_cast<uint32_t>(terrainVertices.size());
 
         m_LandscapeMeshInfo = std::make_shared<engine::MeshInfo>();
         m_LandscapeMeshInfo->name = "LandscapeMesh";

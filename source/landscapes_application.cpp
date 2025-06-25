@@ -177,7 +177,7 @@ void LandscapesApplication::Render(nvrhi::IFramebuffer* framebuffer)
     if (m_UI.DrawObjects)
     {
         render::DrawItem drawItem;
-        drawItem.instance = m_Scene.GetCubeMeshInstance().get();
+        drawItem.instance = m_Scene.GetLandscapeMeshInstance().get();
         drawItem.mesh = drawItem.instance->GetMesh().get();
         drawItem.geometry = drawItem.mesh->geometries[0].get();
         drawItem.material = drawItem.geometry->material.get();
