@@ -2,9 +2,9 @@
 #include <donut/engine/ShaderFactory.h>
 #include <donut/app/DeviceManager.h>
 #include <donut/core/log.h>
-#include <nvrhi/utils.h>
 
 #include "landscapes_application.h"
+#include "user_interface.h"
 
 using namespace donut;
 
@@ -31,12 +31,16 @@ int main(int __argc, const char** __argv)
     }
     
     {
-        LandscapesApplication application(deviceManager);
-        if (application.Init())
+        UIData m_UI;
+
+        auto application = std::make_shared<LandscapesApplication>(deviceManager, m_UI);
+        auto uiRenderer = std::make_shared<UIRenderer>(deviceManager, application, m_UI);
+
+        if (application->Init() && uiRenderer->Init(application->GetShaderFactory()))
         {
-            deviceManager->AddRenderPassToBack(&application);
+            deviceManager->AddRenderPassToBack(application.get());
+            deviceManager->AddRenderPassToBack(uiRenderer.get());
             deviceManager->RunMessageLoop();
-            deviceManager->RemoveRenderPass(&application);
         }
     }
     

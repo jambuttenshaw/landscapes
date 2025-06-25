@@ -11,6 +11,7 @@
 #include <donut/render/DeferredLightingPass.h>
 #include <donut/render/GBufferFillPass.h>
 
+#include "user_interface.h"
 #include "landscapes_scene.h"
 #include "passes/terrain_pass.h"
 
@@ -21,6 +22,8 @@ class LandscapesApplication : public donut::app::ApplicationBase
 {
 public:
 	using ApplicationBase::ApplicationBase;
+
+	LandscapesApplication(donut::app::DeviceManager* deviceManager, UIData& ui);
 
 	bool Init();
 
@@ -35,12 +38,19 @@ public:
 
 	void Render(nvrhi::IFramebuffer* framebuffer) override;
 
+
+	inline std::shared_ptr<donut::engine::ShaderFactory> GetShaderFactory() const { return m_ShaderFactory; }
+
 private:
 
 	void CreateDeferredShadingOutput(nvrhi::IDevice* device, dm::uint2 size, dm::uint sampleCount);
 	void CreateGBufferPasses();
 
+	inline nvrhi::RasterCullMode GetCullMode() const { return m_UI.BackFaceCulling ? nvrhi::RasterCullMode::Back : nvrhi::RasterCullMode::None; }
+
 private:
+	UIData& m_UI;
+
 	std::shared_ptr<donut::engine::ShaderFactory> m_ShaderFactory;
 	std::unique_ptr<donut::engine::BindingCache> m_BindingCache;
 

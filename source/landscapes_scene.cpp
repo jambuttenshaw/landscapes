@@ -203,14 +203,14 @@ bool LandscapesScene::Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandL
     {
         m_LandscapeBuffers = std::make_shared<engine::BufferGroup>();
         InstanceData instance{};
-        instance.transform = math::float3x4(transpose(math::affineToHomogeneous(math::scaling(math::float3(100)))));
+        instance.transform = math::float3x4(transpose(math::affineToHomogeneous(math::scaling(math::float3(1)))));
         instance.prevTransform = instance.transform;
         m_LandscapeBuffers->instanceBuffer = CreateGeometryBuffer(device, commandList, "VertexBufferTransform", &instance, sizeof(instance), false, true);
 
         auto geometry = std::make_shared<engine::MeshGeometry>();
         geometry->material = m_GreenMaterial;
         geometry->numIndices = 0;
-        geometry->numVertices = 4;
+        geometry->numVertices = 10;
 
         m_LandscapeMeshInfo = std::make_shared<engine::MeshInfo>();
         m_LandscapeMeshInfo->name = "LandscapeMesh";

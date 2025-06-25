@@ -23,23 +23,33 @@ public:
 	    {
             nvrhi::RasterCullMode cullMode : 2;
             bool frontCounterClockwise : 1;
+            bool wireframe : 1;
             bool reverseDepth : 1;
 	    } bits;
         uint32_t value;
 
-        static constexpr size_t Count = 1 << 3;
-        static_assert(8 * sizeof(bits) <= Count);
+        static constexpr size_t Count = 1 << 5;
     };
 
     struct Context : public donut::render::GeometryPassContext
     {
-        nvrhi::BindingSetHandle inputBindingSet;
-        PipelineKey keyTemplate;
+        friend class TerrainGBufferFillPass;
 
+    public:
         Context()
         {
             keyTemplate.value = 0;
         }
+
+        Context(bool wireframe)
+        {
+            keyTemplate.value = 0;
+            keyTemplate.bits.wireframe = wireframe;
+        }
+
+    protected:
+        nvrhi::BindingSetHandle inputBindingSet;
+        PipelineKey keyTemplate;
     };
 
     struct CreateParameters

@@ -239,7 +239,8 @@ nvrhi::GraphicsPipelineHandle TerrainGBufferFillPass::CreateGraphicsPipeline(Pip
 
 	pipelineDesc.renderState.rasterState
 		.setFrontCounterClockwise(key.bits.frontCounterClockwise)
-		.setCullMode(key.bits.cullMode);
+		.setCullMode(key.bits.cullMode)
+		.setFillMode(key.bits.wireframe ? nvrhi::RasterFillMode::Wireframe : nvrhi::RasterFillMode::Solid);
 
 	pipelineDesc.renderState.depthStencilState
 		.setDepthWriteEnable(true)

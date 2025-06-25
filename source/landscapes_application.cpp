@@ -15,6 +15,12 @@ using namespace donut::math;
 const char* g_WindowTitle = "Landscapes";
 
 
+LandscapesApplication::LandscapesApplication(donut::app::DeviceManager* deviceManager, UIData& ui)
+	: ApplicationBase(deviceManager)
+	, m_UI(ui)
+{
+}
+
 bool LandscapesApplication::Init()
 {
     auto nativeFS = std::make_shared<vfs::NativeFileSystem>();
@@ -139,7 +145,8 @@ void LandscapesApplication::Render(nvrhi::IFramebuffer* framebuffer)
 
     m_GBuffer->Clear(m_CommandList);
 
-    // Draw landscape
+    // Draw terrain
+    if (m_UI.DrawTerrain)
     {
         render::DrawItem drawItem;
         drawItem.instance = m_Scene.GetLandscapeMeshInstance().get();
@@ -148,12 +155,12 @@ void LandscapesApplication::Render(nvrhi::IFramebuffer* framebuffer)
         drawItem.material = drawItem.geometry->material.get();
         drawItem.buffers = drawItem.mesh->buffers.get();
         drawItem.distanceToCamera = 0;
-        drawItem.cullMode = nvrhi::RasterCullMode::None;
+        drawItem.cullMode = GetCullMode();
 
         render::PassthroughDrawStrategy drawStrategy;
         drawStrategy.SetData(&drawItem, 1);
 
-        TerrainGBufferFillPass::Context context;
+        TerrainGBufferFillPass::Context context{ m_UI.Wireframe };
 
         landscapes::RenderTerrainView(
             m_CommandList,
@@ -167,6 +174,7 @@ void LandscapesApplication::Render(nvrhi::IFramebuffer* framebuffer)
     }
 
     // Draw objects in scene
+    if (m_UI.DrawObjects)
     {
         render::DrawItem drawItem;
         drawItem.instance = m_Scene.GetCubeMeshInstance().get();
@@ -175,7 +183,7 @@ void LandscapesApplication::Render(nvrhi::IFramebuffer* framebuffer)
         drawItem.material = drawItem.geometry->material.get();
         drawItem.buffers = drawItem.mesh->buffers.get();
         drawItem.distanceToCamera = 0;
-        drawItem.cullMode = nvrhi::RasterCullMode::Back;
+        drawItem.cullMode = GetCullMode();
 
         render::PassthroughDrawStrategy drawStrategy;
         drawStrategy.SetData(&drawItem, 1);

@@ -16,7 +16,16 @@ static const float2 g_positions[] = {
 	float2(-0.5, -0.5),
 	float2( 0.5, -0.5),
 	float2(-0.5,  0.5),
-	float2( 0.5,  0.5)
+	float2( 0.5,  0.5),
+
+    // Cut the triangle strip with a degenerate triangle
+	float2( 0.5,  0.5),
+    float2(1.25f, 0.0f) + float2(-0.5, -0.5),
+
+    float2(1.25f, 0.0f) + float2(-0.5, -0.5),
+	float2(1.25f, 0.0f) + float2(0.5, -0.5),
+	float2(1.25f, 0.0f) + float2(-0.5, 0.5),
+	float2(1.25f, 0.0f) + float2(0.5, 0.5),
 };
 
 
