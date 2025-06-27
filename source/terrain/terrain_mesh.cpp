@@ -6,7 +6,7 @@ using namespace donut::math;
 
 void landscapes::CreateTerrainMesh(
 	uint2 resolution,
-	std::vector<float2>& outVertices,
+	std::vector<float3>& outVertices,
 	std::vector<uint32_t>& outIndices
 )
 {
@@ -25,6 +25,7 @@ void landscapes::CreateTerrainMesh(
 		{
 			outVertices[vertex++] = {
 				static_cast<float>(x) / (fRes.x - 1.0f),
+				0.0f,
 				static_cast<float>(y) / (fRes.y - 1.0f),
 			};
 		}

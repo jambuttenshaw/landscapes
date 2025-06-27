@@ -10,7 +10,7 @@ namespace landscapes
 
 	void CreateTerrainMesh(
 		donut::math::uint2 resolution,
-		std::vector<donut::math::float2>& outVertices,
+		std::vector<donut::math::float3>& outVertices,
 		std::vector<uint32_t>& outIndices
 	);
 

@@ -14,7 +14,7 @@ static const float3 g_Positions[] = {
     { 0.5f, -0.5f, -0.5f},
     {-0.5f, -0.5f, -0.5f},
     { 0.5f,  0.5f, -0.5f},
-
+    /*
     { 0.5f, -0.5f, -0.5f}, // right side face
     { 0.5f,  0.5f,  0.5f},
     { 0.5f, -0.5f,  0.5f},
@@ -39,6 +39,7 @@ static const float3 g_Positions[] = {
     {-0.5f, -0.5f, -0.5f},
     { 0.5f, -0.5f, -0.5f},
     {-0.5f, -0.5f,  0.5f},
+	*/
 };
 
 static const float2 g_TexCoords[] = {
@@ -46,7 +47,7 @@ static const float2 g_TexCoords[] = {
     {1.0f, 1.0f},
     {0.0f, 1.0f},
     {1.0f, 0.0f},
-
+    /*
     {0.0f, 1.0f}, // right side face
     {1.0f, 0.0f},
     {1.0f, 1.0f},
@@ -71,6 +72,7 @@ static const float2 g_TexCoords[] = {
     {0.0f, 0.0f},
     {1.0f, 0.0f},
     {0.0f, 1.0f},
+	*/
 };
 
 static const uint g_Normals[] = {
@@ -78,7 +80,7 @@ static const uint g_Normals[] = {
     vectorToSnorm8(float4(0.0f, 0.0f, -1.0f, 0.0f)),
     vectorToSnorm8(float4(0.0f, 0.0f, -1.0f, 0.0f)),
     vectorToSnorm8(float4(0.0f, 0.0f, -1.0f, 0.0f)),
-
+    /*
     vectorToSnorm8(float4(1.0f, 0.0f, 0.0f, 0.0f)), // right side face
     vectorToSnorm8(float4(1.0f, 0.0f, 0.0f, 0.0f)),
     vectorToSnorm8(float4(1.0f, 0.0f, 0.0f, 0.0f)),
@@ -103,6 +105,7 @@ static const uint g_Normals[] = {
     vectorToSnorm8(float4(0.0f, -1.0f, 0.0f, 0.0f)),
     vectorToSnorm8(float4(0.0f, -1.0f, 0.0f, 0.0f)),
     vectorToSnorm8(float4(0.0f, -1.0f, 0.0f, 0.0f)),
+	*/
 };
 
 static const uint g_Tangents[] = {
@@ -110,7 +113,7 @@ static const uint g_Tangents[] = {
     vectorToSnorm8(float4(1.0f, 0.0f, 0.0f, 1.0f)),
     vectorToSnorm8(float4(1.0f, 0.0f, 0.0f, 1.0f)),
     vectorToSnorm8(float4(1.0f, 0.0f, 0.0f, 1.0f)),
-
+    /*
     vectorToSnorm8(float4(0.0f, 0.0f, 1.0f, 1.0f)), // right side face
     vectorToSnorm8(float4(0.0f, 0.0f, 1.0f, 1.0f)),
     vectorToSnorm8(float4(0.0f, 0.0f, 1.0f, 1.0f)),
@@ -135,15 +138,18 @@ static const uint g_Tangents[] = {
     vectorToSnorm8(float4(1.0f, 0.0f, 0.0f, 1.0f)),
     vectorToSnorm8(float4(1.0f, 0.0f, 0.0f, 1.0f)),
     vectorToSnorm8(float4(1.0f, 0.0f, 0.0f, 1.0f)),
+	*/
 };
 
 static const uint32_t g_Indices[] = {
      0,  1,  2,   0,  3,  1, // front face
+    /*
      4,  5,  6,   4,  7,  5, // left face
      8,  9, 10,   8, 11,  9, // right face
     12, 13, 14,  12, 15, 13, // back face
     16, 17, 18,  16, 19, 17, // top face
     20, 21, 22,  20, 23, 21, // bottom face
+	*/
 };
 
 
@@ -203,12 +209,12 @@ bool LandscapesScene::Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandL
     }
 
     {
-        std::vector<float2> terrainVertices;
+        std::vector<float3> terrainVertices;
         std::vector<uint32_t> terrainIndices;
         landscapes::CreateTerrainMesh({ 2, 2 }, terrainVertices, terrainIndices);
 
         m_LandscapeBuffers = std::make_shared<engine::BufferGroup>();
-        m_LandscapeBuffers->indexBuffer = CreateGeometryBuffer(device, commandList, "IndexBuffer", terrainIndices.data(), terrainIndices.size() * sizeof(terrainIndices[0]), false, false);
+        m_LandscapeBuffers->indexBuffer = CreateGeometryBuffer(device, commandList, "TerrainIndexBuffer", terrainIndices.data(), terrainIndices.size() * sizeof(terrainIndices[0]), false, false);
 
         uint64_t vertexBufferSize = terrainVertices.size() * sizeof(terrainVertices[0]);
         m_LandscapeBuffers->getVertexBufferRange(engine::VertexAttribute::Position).setByteOffset(0).setByteSize(vertexBufferSize);
