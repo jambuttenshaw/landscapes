@@ -3,10 +3,13 @@
 #include <donut/engine/TextureCache.h>
 #include <donut/engine/SceneGraph.h>
 
+#include "terrain/terrain_mesh.h"
+
 
 class LandscapesScene
 {
 public:
+    LandscapesScene();
 	bool Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandList, donut::engine::TextureCache* textureCache);
 
 
@@ -15,9 +18,9 @@ public:
         return m_CubeMeshInstance;
     }
 
-    inline const std::shared_ptr<donut::engine::MeshInstance>& GetLandscapeMeshInstance() const
+    inline const std::shared_ptr<donut::engine::MeshInstance>& GetTerrainMeshInstance() const
     {
-        return m_LandscapeMeshInstance;
+        return m_TerrainMeshInstance;
     }
 
     inline const std::shared_ptr<donut::engine::SceneGraph>& GetSceneGraph() const
@@ -51,7 +54,6 @@ private:
 	std::shared_ptr<donut::engine::MeshInfo> m_CubeMeshInfo;
 	std::shared_ptr<donut::engine::MeshInstance> m_CubeMeshInstance;
 
-    std::shared_ptr<donut::engine::BufferGroup> m_LandscapeBuffers;
-	std::shared_ptr<donut::engine::MeshInfo> m_LandscapeMeshInfo;
-    std::shared_ptr<donut::engine::MeshInstance> m_LandscapeMeshInstance;
+    TerrainMesh m_TerrainMesh;
+    std::shared_ptr<donut::engine::MeshInstance> m_TerrainMeshInstance;
 };

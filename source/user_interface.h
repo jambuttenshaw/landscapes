@@ -12,7 +12,7 @@ struct UIData
 	bool BackFaceCulling = true;
 
 	bool DrawTerrain = true;
-	bool DrawObjects = false;
+	bool DrawObjects = true;
 };
 
 

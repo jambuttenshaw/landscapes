@@ -14,7 +14,7 @@ static const float3 g_Positions[] = {
     { 0.5f, -0.5f, -0.5f},
     {-0.5f, -0.5f, -0.5f},
     { 0.5f,  0.5f, -0.5f},
-    /*
+    
     { 0.5f, -0.5f, -0.5f}, // right side face
     { 0.5f,  0.5f,  0.5f},
     { 0.5f, -0.5f,  0.5f},
@@ -39,7 +39,6 @@ static const float3 g_Positions[] = {
     {-0.5f, -0.5f, -0.5f},
     { 0.5f, -0.5f, -0.5f},
     {-0.5f, -0.5f,  0.5f},
-	*/
 };
 
 static const float2 g_TexCoords[] = {
@@ -47,7 +46,7 @@ static const float2 g_TexCoords[] = {
     {1.0f, 1.0f},
     {0.0f, 1.0f},
     {1.0f, 0.0f},
-    /*
+    
     {0.0f, 1.0f}, // right side face
     {1.0f, 0.0f},
     {1.0f, 1.0f},
@@ -71,8 +70,7 @@ static const float2 g_TexCoords[] = {
     {1.0f, 1.0f}, // bottom face
     {0.0f, 0.0f},
     {1.0f, 0.0f},
-    {0.0f, 1.0f},
-	*/
+    {0.0f, 1.0f}, 
 };
 
 static const uint g_Normals[] = {
@@ -80,7 +78,7 @@ static const uint g_Normals[] = {
     vectorToSnorm8(float4(0.0f, 0.0f, -1.0f, 0.0f)),
     vectorToSnorm8(float4(0.0f, 0.0f, -1.0f, 0.0f)),
     vectorToSnorm8(float4(0.0f, 0.0f, -1.0f, 0.0f)),
-    /*
+    
     vectorToSnorm8(float4(1.0f, 0.0f, 0.0f, 0.0f)), // right side face
     vectorToSnorm8(float4(1.0f, 0.0f, 0.0f, 0.0f)),
     vectorToSnorm8(float4(1.0f, 0.0f, 0.0f, 0.0f)),
@@ -104,8 +102,7 @@ static const uint g_Normals[] = {
     vectorToSnorm8(float4(0.0f, -1.0f, 0.0f, 0.0f)), // bottom face
     vectorToSnorm8(float4(0.0f, -1.0f, 0.0f, 0.0f)),
     vectorToSnorm8(float4(0.0f, -1.0f, 0.0f, 0.0f)),
-    vectorToSnorm8(float4(0.0f, -1.0f, 0.0f, 0.0f)),
-	*/
+    vectorToSnorm8(float4(0.0f, -1.0f, 0.0f, 0.0f)), 
 };
 
 static const uint g_Tangents[] = {
@@ -113,7 +110,7 @@ static const uint g_Tangents[] = {
     vectorToSnorm8(float4(1.0f, 0.0f, 0.0f, 1.0f)),
     vectorToSnorm8(float4(1.0f, 0.0f, 0.0f, 1.0f)),
     vectorToSnorm8(float4(1.0f, 0.0f, 0.0f, 1.0f)),
-    /*
+    
     vectorToSnorm8(float4(0.0f, 0.0f, 1.0f, 1.0f)), // right side face
     vectorToSnorm8(float4(0.0f, 0.0f, 1.0f, 1.0f)),
     vectorToSnorm8(float4(0.0f, 0.0f, 1.0f, 1.0f)),
@@ -137,26 +134,26 @@ static const uint g_Tangents[] = {
     vectorToSnorm8(float4(1.0f, 0.0f, 0.0f, 1.0f)), // bottom face
     vectorToSnorm8(float4(1.0f, 0.0f, 0.0f, 1.0f)),
     vectorToSnorm8(float4(1.0f, 0.0f, 0.0f, 1.0f)),
-    vectorToSnorm8(float4(1.0f, 0.0f, 0.0f, 1.0f)),
-	*/
+    vectorToSnorm8(float4(1.0f, 0.0f, 0.0f, 1.0f)), 
 };
 
 static const uint32_t g_Indices[] = {
      0,  1,  2,   0,  3,  1, // front face
-    /*
      4,  5,  6,   4,  7,  5, // left face
      8,  9, 10,   8, 11,  9, // right face
     12, 13, 14,  12, 15, 13, // back face
     16, 17, 18,  16, 19, 17, // top face
     20, 21, 22,  20, 23, 21, // bottom face
-	*/
 };
 
 
+LandscapesScene::LandscapesScene()
+    : m_TerrainMesh({ 100, 100 })
+{
+}
+
 bool LandscapesScene::Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandList, donut::engine::TextureCache* textureCache)
 {
-    commandList->open();
-
     {
         m_GreyMaterial = std::make_shared<engine::Material>();
         m_GreyMaterial->name = "GreyMaterial";
@@ -190,7 +187,7 @@ bool LandscapesScene::Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandL
 	    commandList->setPermanentBufferState(m_CubeBuffers->vertexBuffer, nvrhi::ResourceStates::ShaderResource);
 
 	    InstanceData instance{};
-	    instance.transform = math::float3x4(transpose(math::affineToHomogeneous(math::translation(float3(0, 0.5, 0)))));
+	    instance.transform = math::float3x4(transpose(math::affineToHomogeneous(math::translation(float3(0, 0.5f, 0.0f)))));
 	    instance.prevTransform = instance.transform;
 	    m_CubeBuffers->instanceBuffer = CreateGeometryBuffer(device, commandList, "VertexBufferTransform", &instance, sizeof(instance), false, true);
 
@@ -209,56 +206,27 @@ bool LandscapesScene::Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandL
     }
 
     {
-        std::vector<float3> terrainVertices;
-        std::vector<uint32_t> terrainIndices;
-        landscapes::CreateTerrainMesh({ 2, 2 }, terrainVertices, terrainIndices);
-
-        m_LandscapeBuffers = std::make_shared<engine::BufferGroup>();
-        m_LandscapeBuffers->indexBuffer = CreateGeometryBuffer(device, commandList, "TerrainIndexBuffer", terrainIndices.data(), terrainIndices.size() * sizeof(terrainIndices[0]), false, false);
-
-        uint64_t vertexBufferSize = terrainVertices.size() * sizeof(terrainVertices[0]);
-        m_LandscapeBuffers->getVertexBufferRange(engine::VertexAttribute::Position).setByteOffset(0).setByteSize(vertexBufferSize);
-        m_LandscapeBuffers->vertexBuffer = CreateGeometryBuffer(device, commandList, "VertexBuffer", nullptr, vertexBufferSize, true, false);
-
-        commandList->beginTrackingBufferState(m_LandscapeBuffers->vertexBuffer, nvrhi::ResourceStates::CopyDest);
-        commandList->writeBuffer(m_LandscapeBuffers->vertexBuffer, terrainVertices.data(), vertexBufferSize, m_LandscapeBuffers->getVertexBufferRange(engine::VertexAttribute::Position).byteOffset);
-        commandList->setPermanentBufferState(m_LandscapeBuffers->vertexBuffer, nvrhi::ResourceStates::ShaderResource);
-
-        InstanceData instance{};
-        instance.transform = math::float3x4(transpose(math::affineToHomogeneous(math::scaling(math::float3(1)))));
-        instance.prevTransform = instance.transform;
-        m_LandscapeBuffers->instanceBuffer = CreateGeometryBuffer(device, commandList, "VertexBufferTransform", &instance, sizeof(instance), false, true);
-
-        auto geometry = std::make_shared<engine::MeshGeometry>();
-        geometry->material = m_GreenMaterial;
-        geometry->numIndices = static_cast<uint32_t>(terrainIndices.size());
-        geometry->numVertices = static_cast<uint32_t>(terrainVertices.size());
-
-        m_LandscapeMeshInfo = std::make_shared<engine::MeshInfo>();
-        m_LandscapeMeshInfo->name = "LandscapeMesh";
-        m_LandscapeMeshInfo->buffers = m_LandscapeBuffers;
-        m_LandscapeMeshInfo->objectSpaceBounds = math::box3(math::float3(-0.5f), math::float3(0.5f));
-        m_LandscapeMeshInfo->totalIndices = geometry->numIndices;
-        m_LandscapeMeshInfo->totalVertices = geometry->numVertices;
-        m_LandscapeMeshInfo->geometries.push_back(geometry);
+        m_TerrainMesh.InitResources(device, commandList, m_GreenMaterial);
     }
 
-    commandList->close();
-    device->executeCommandList(commandList);
-
     m_SceneGraph = std::make_shared<engine::SceneGraph>();
-    auto node = std::make_shared<engine::SceneGraphNode>();
-    m_SceneGraph->SetRootNode(node);
+    auto rootNode = std::make_shared<engine::SceneGraphNode>();
+    m_SceneGraph->SetRootNode(rootNode);
 
+    auto cubeNode = std::make_shared<engine::SceneGraphNode>();
+    m_SceneGraph->Attach(rootNode, cubeNode);
     m_CubeMeshInstance = std::make_shared<engine::MeshInstance>(m_CubeMeshInfo);
-    node->SetLeaf(m_CubeMeshInstance);
-    node->SetName("CubeNode");
+    cubeNode->SetLeaf(m_CubeMeshInstance);
+    cubeNode->SetName("CubeNode");
 
-    m_LandscapeMeshInstance = std::make_shared<engine::MeshInstance>(m_LandscapeMeshInfo);
-    m_SceneGraph->AttachLeafNode(node, m_LandscapeMeshInstance);
+    auto terrainNode = std::make_shared<engine::SceneGraphNode>();
+    m_SceneGraph->Attach(rootNode, terrainNode);
+    m_TerrainMeshInstance = std::make_shared<engine::MeshInstance>(m_TerrainMesh.GetMeshInfo());
+    terrainNode->SetLeaf(m_TerrainMeshInstance);
+    terrainNode->SetName("TerrainNode");
 
     auto sunLight = std::make_shared<engine::DirectionalLight>();
-    m_SceneGraph->AttachLeafNode(node, sunLight);
+    m_SceneGraph->AttachLeafNode(rootNode, sunLight);
 
     sunLight->SetDirection(double3(0.1, -1.0, 0.2));
     sunLight->angularSize = 0.53f;

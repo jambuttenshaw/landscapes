@@ -42,9 +42,16 @@ bool LandscapesApplication::Init()
 
     m_CommandList = GetDevice()->createCommandList();
 
-    m_Camera.LookAt(float3(0.f, 1.f, 2.f), float3(0.f, 0.f, 0));
+    m_Camera.LookAt(float3(0.f, 1.f, -2.f), float3(0.f, 0.f, 0));
 
-	return m_Scene.Init(GetDevice(), m_CommandList, m_TextureCache.get());
+    m_CommandList->open();
+
+    bool success = m_Scene.Init(GetDevice(), m_CommandList, m_TextureCache.get());
+
+    m_CommandList->close();
+    GetDevice()->executeCommandList(m_CommandList);
+
+	return success;
 }
 
 void LandscapesApplication::CreateDeferredShadingOutput(nvrhi::IDevice* device, dm::uint2 size, dm::uint sampleCount)
@@ -70,8 +77,8 @@ void LandscapesApplication::CreateGBufferPasses()
     m_GBufferPass = std::make_unique<render::GBufferFillPass>(GetDevice(), m_CommonPasses);
     m_GBufferPass->Init(*m_ShaderFactory, GBufferParams);
 
-    m_TerrainGBufferPass = std::make_unique<TerrainGBufferFillPass>(GetDevice(), m_CommonPasses);
-    m_TerrainGBufferPass->Init(*m_ShaderFactory, {});
+    m_TerrainGBufferPass = std::make_unique<TerrainGBufferFillPass>(GetDevice());
+    m_TerrainGBufferPass->Init(*m_ShaderFactory);
 }
 
 bool LandscapesApplication::LoadScene(std::shared_ptr<vfs::IFileSystem> fs, const std::filesystem::path& sceneFileName)
@@ -149,7 +156,7 @@ void LandscapesApplication::Render(nvrhi::IFramebuffer* framebuffer)
     if (m_UI.DrawTerrain)
     {
         render::DrawItem drawItem;
-        drawItem.instance = m_Scene.GetLandscapeMeshInstance().get();
+        drawItem.instance = m_Scene.GetTerrainMeshInstance().get();
         drawItem.mesh = drawItem.instance->GetMesh().get();
         drawItem.geometry = drawItem.mesh->geometries[0].get();
         drawItem.material = drawItem.geometry->material.get();
@@ -160,16 +167,14 @@ void LandscapesApplication::Render(nvrhi::IFramebuffer* framebuffer)
         render::PassthroughDrawStrategy drawStrategy;
         drawStrategy.SetData(&drawItem, 1);
 
-        TerrainGBufferFillPass::Context context{ m_UI.Wireframe };
-
-        landscapes::RenderTerrainView(
+        m_TerrainGBufferPass->RenderTerrain(
             m_CommandList,
             &m_View,
             &m_View,
             m_GBuffer->GBufferFramebuffer->GetFramebuffer(m_View),
-            drawStrategy,
-            *m_TerrainGBufferPass,
-            context
+            GetCullMode(),
+            m_UI.Wireframe,
+            drawStrategy
         );
     }
 
@@ -177,7 +182,7 @@ void LandscapesApplication::Render(nvrhi::IFramebuffer* framebuffer)
     if (m_UI.DrawObjects)
     {
         render::DrawItem drawItem;
-        drawItem.instance = m_Scene.GetLandscapeMeshInstance().get();
+        drawItem.instance = m_Scene.GetCubeMeshInstance().get();
         drawItem.mesh = drawItem.instance->GetMesh().get();
         drawItem.geometry = drawItem.mesh->geometries[0].get();
         drawItem.material = drawItem.geometry->material.get();
@@ -190,12 +195,11 @@ void LandscapesApplication::Render(nvrhi::IFramebuffer* framebuffer)
 
         render::GBufferFillPass::Context context;
 
-        render::RenderCompositeView(
+        render::RenderView(
             m_CommandList,
             &m_View,
             &m_View,
-            *m_GBuffer->GBufferFramebuffer,
-            m_Scene.GetSceneGraph()->GetRootNode(),
+            m_GBuffer->GBufferFramebuffer->GetFramebuffer(m_View),
             drawStrategy,
             *m_GBufferPass,
             context
