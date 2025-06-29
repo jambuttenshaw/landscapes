@@ -58,8 +58,10 @@ TerrainMesh::TerrainMesh(uint2 resolution)
 	assert(all(m_Resolution > uint2{0, 0}));
 }
 
-void TerrainMesh::InitResources(nvrhi::IDevice* device, nvrhi::ICommandList* commandList, std::shared_ptr<donut::engine::Material> material)
+void TerrainMesh::InitResources(nvrhi::IDevice* device, nvrhi::ICommandList* commandList, const std::vector<TerrainTile>& tileInstances)
 {
+	assert(!tileInstances.empty());
+
 	std::vector<float3> positions;
 	std::vector<uint32_t> indices;
 
@@ -104,27 +106,32 @@ void TerrainMesh::InitResources(nvrhi::IDevice* device, nvrhi::ICommandList* com
 
 	// Create instance buffer
 	{
-		InstanceData instance{};
-		instance.transform = math::float3x4(transpose(math::affineToHomogeneous(affine3::identity())));
-		instance.prevTransform = instance.transform;
+		std::vector<InstanceData> instances(tileInstances.size());
+		for (auto& instanceData : instances)
+		{
+			instanceData.transform = math::float3x4(transpose(math::affineToHomogeneous(affine3::identity())));
+			instanceData.prevTransform = instanceData.transform;
+		}
+
+		uint64_t instancesByteSize = instances.size() * sizeof(instances[0]);
 
 		nvrhi::BufferDesc instanceBufferDesc;
-		instanceBufferDesc.byteSize = sizeof(instance);
+		instanceBufferDesc.byteSize = instancesByteSize;
 		instanceBufferDesc.canHaveRawViews = true;
-		instanceBufferDesc.structStride = sizeof(instance);
+		instanceBufferDesc.structStride = sizeof(instances[0]);
 		instanceBufferDesc.debugName = "TerrainIndexBuffer";
 		instanceBufferDesc.initialState = nvrhi::ResourceStates::CopyDest;
 		m_Buffers->instanceBuffer = device->createBuffer(instanceBufferDesc);
 
 		commandList->beginTrackingBufferState(m_Buffers->instanceBuffer, nvrhi::ResourceStates::CopyDest);
-		commandList->writeBuffer(m_Buffers->instanceBuffer, &instance, sizeof(instance));
+		commandList->writeBuffer(m_Buffers->instanceBuffer, instances.data(), instancesByteSize);
 		commandList->setPermanentBufferState(m_Buffers->instanceBuffer, nvrhi::ResourceStates::ShaderResource);
 	}
 
 	// Create mesh info
 	{
 		auto geometry = std::make_shared<engine::MeshGeometry>();
-		geometry->material = std::move(material);
+		geometry->material = nullptr;
 		geometry->numIndices = static_cast<uint32_t>(indices.size());
 		geometry->numVertices = static_cast<uint32_t>(positions.size());
 

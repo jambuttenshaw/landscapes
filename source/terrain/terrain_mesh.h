@@ -1,10 +1,11 @@
 #pragma once
 
 #include <donut/core/math/math.h>
+#include <donut/engine/SceneGraph.h>
+#include <donut/engine/SceneTypes.h>
+#include <nvrhi/nvrhi.h>
 
-#include "donut/engine/SceneGraph.h"
-#include "donut/engine/SceneTypes.h"
-#include "nvrhi/nvrhi.h"
+#include "terrain_tree.h"
 
 
 class TerrainMesh
@@ -12,7 +13,10 @@ class TerrainMesh
 public:
 	TerrainMesh(donut::math::uint2 resolution);
 
-	void InitResources(nvrhi::IDevice* device, nvrhi::ICommandList* commandList, std::shared_ptr<donut::engine::Material> material);
+	void InitResources(
+		nvrhi::IDevice* device,
+		nvrhi::ICommandList* commandList,
+		const std::vector<TerrainTile>& tileInstances);
 
 	const std::shared_ptr<donut::engine::MeshInfo>& GetMeshInfo() const { return m_MeshInfo; }
 

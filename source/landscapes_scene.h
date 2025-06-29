@@ -4,6 +4,7 @@
 #include <donut/engine/SceneGraph.h>
 
 #include "terrain/terrain_mesh.h"
+#include "terrain/terrain_tree.h"
 
 
 class LandscapesScene
@@ -16,11 +17,6 @@ public:
     inline const std::shared_ptr<donut::engine::MeshInstance>& GetCubeMeshInstance() const
     {
         return m_CubeMeshInstance;
-    }
-
-    inline const std::shared_ptr<donut::engine::MeshInstance>& GetTerrainMeshInstance() const
-    {
-        return m_TerrainMeshInstance;
     }
 
     inline const std::shared_ptr<donut::engine::SceneGraph>& GetSceneGraph() const
@@ -54,6 +50,5 @@ private:
 	std::shared_ptr<donut::engine::MeshInfo> m_CubeMeshInfo;
 	std::shared_ptr<donut::engine::MeshInstance> m_CubeMeshInstance;
 
-    TerrainMesh m_TerrainMesh;
-    std::shared_ptr<donut::engine::MeshInstance> m_TerrainMeshInstance;
+    std::shared_ptr<Terrain> m_Terrain;
 };

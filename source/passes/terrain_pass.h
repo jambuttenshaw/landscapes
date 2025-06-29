@@ -37,7 +37,6 @@ public:
         const donut::engine::IView* view,
         const donut::engine::IView* viewPrev,
         nvrhi::IFramebuffer* framebuffer,
-        nvrhi::RasterCullMode cullMode,
         bool wireframe,
         donut::render::IDrawStrategy& drawStrategy // contains the terrain item to draw
     );

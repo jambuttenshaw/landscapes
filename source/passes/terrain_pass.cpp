@@ -36,7 +36,6 @@ void TerrainGBufferFillPass::RenderTerrain(
 	const engine::IView* view,
 	const engine::IView* viewPrev,
 	nvrhi::IFramebuffer* framebuffer,
-	nvrhi::RasterCullMode cullMode,
 	bool wireframe,
 	donut::render::IDrawStrategy& drawStrategy
 )
@@ -62,7 +61,7 @@ void TerrainGBufferFillPass::RenderTerrain(
 	key.bits.frontCounterClockwise = view->IsMirrored();
 	key.bits.reverseDepth = view->IsReverseDepth();
 	key.bits.wireframe = wireframe;
-	key.bits.cullMode = cullMode;
+	key.bits.cullMode = drawItem->cullMode;
 
 	// Get graphics pipeline
 	nvrhi::GraphicsPipelineHandle& pipeline = m_Pipelines[key.value];

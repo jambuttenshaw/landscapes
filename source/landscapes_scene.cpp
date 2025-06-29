@@ -148,7 +148,6 @@ static const uint32_t g_Indices[] = {
 
 
 LandscapesScene::LandscapesScene()
-    : m_TerrainMesh({ 100, 100 })
 {
 }
 
@@ -206,7 +205,8 @@ bool LandscapesScene::Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandL
     }
 
     {
-        m_TerrainMesh.InitResources(device, commandList, m_GreenMaterial);
+        m_Terrain = std::make_shared<Terrain>(Terrain::CreateParams{});
+        m_Terrain->Init(device, commandList);
     }
 
     m_SceneGraph = std::make_shared<engine::SceneGraph>();
@@ -218,12 +218,6 @@ bool LandscapesScene::Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandL
     m_CubeMeshInstance = std::make_shared<engine::MeshInstance>(m_CubeMeshInfo);
     cubeNode->SetLeaf(m_CubeMeshInstance);
     cubeNode->SetName("CubeNode");
-
-    auto terrainNode = std::make_shared<engine::SceneGraphNode>();
-    m_SceneGraph->Attach(rootNode, terrainNode);
-    m_TerrainMeshInstance = std::make_shared<engine::MeshInstance>(m_TerrainMesh.GetMeshInfo());
-    terrainNode->SetLeaf(m_TerrainMeshInstance);
-    terrainNode->SetName("TerrainNode");
 
     auto sunLight = std::make_shared<engine::DirectionalLight>();
     m_SceneGraph->AttachLeafNode(rootNode, sunLight);

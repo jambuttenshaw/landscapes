@@ -153,6 +153,7 @@ void LandscapesApplication::Render(nvrhi::IFramebuffer* framebuffer)
     m_GBuffer->Clear(m_CommandList);
 
     // Draw terrain
+    /*
     if (m_UI.DrawTerrain)
     {
         render::DrawItem drawItem;
@@ -172,11 +173,11 @@ void LandscapesApplication::Render(nvrhi::IFramebuffer* framebuffer)
             &m_View,
             &m_View,
             m_GBuffer->GBufferFramebuffer->GetFramebuffer(m_View),
-            GetCullMode(),
-            m_UI.Wireframe,
+            m_UI.Wireframe, // TODO: This was quite nice before passing extra state through as a context
             drawStrategy
         );
     }
+	*/
 
     // Draw objects in scene
     if (m_UI.DrawObjects)
