@@ -12,14 +12,24 @@ class TerrainTile
 {
 public:
 	TerrainTile(
-		std::shared_ptr<donut::engine::SceneGraphNode> parent,
+		donut::engine::SceneGraph* sceneGraph,
+		const std::shared_ptr<donut::engine::SceneGraphNode>& parent,
 		std::shared_ptr<donut::engine::MeshInfo> terrainMesh,
-		uint32_t level
+		uint level,
+		uint tileIndex
 	);
+
+	inline uint GetLevel() const { return m_Level; }
+	inline uint GetTileIndex() const { return m_TileIndex; }
+
+	inline const std::shared_ptr<donut::engine::SceneGraphNode>& GetGraphNode() const { return m_Node; }
+	inline const std::shared_ptr<donut::engine::MeshInstance>& GetMeshInstance() const { return m_MeshInstance; }
 
 private:
 	// Which level of the tree this tile exists at
-	uint32_t m_Level;
+	uint m_Level;
+	// The index into the global tile array for this tile (for looking up instance data in instance buffer)
+	uint m_TileIndex;
 
 	// The mesh instance is a leaf of the node in the tree
 	std::shared_ptr<donut::engine::SceneGraphNode> m_Node;
@@ -41,10 +51,15 @@ public:
 
 	Terrain(const CreateParams& params);
 
-	void Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandList);
+	void Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandList, donut::engine::SceneGraph* sceneGraph);
 
 private:
-	void CreateChildTilesFor(const std::shared_ptr<TerrainTile>& tile);
+	void CreateChildTilesFor(
+		donut::engine::SceneGraph* sceneGraph,
+		std::vector<struct InstanceData>& instanceData,
+		std::shared_ptr<donut::engine::SceneGraphNode> parent,
+		uint level
+	);
 
 private:
 	// The width and height of the entire terrain
@@ -56,12 +71,12 @@ private:
 
 	// The same mesh is shared by all terrain tiles
 	uint2 m_TerrainResolution;
-	std::shared_ptr<class TerrainMesh> m_TerrainMesh;
+	std::shared_ptr<donut::engine::BufferGroup> m_Buffers;
+	std::shared_ptr<donut::engine::MeshInfo> m_MeshInfo;
 
 	// Terrain tile instances
-	uint m_TileCount;
 	std::vector<std::shared_ptr<TerrainTile>> m_Tiles;
 
 	// Scene graph objects
-
+	std::shared_ptr<donut::engine::SceneGraphNode> m_TerrainRootNode;
 };
