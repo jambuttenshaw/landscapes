@@ -11,20 +11,18 @@ using namespace donut::math;
 class TerrainTile
 {
 public:
-	TerrainTile() : m_Level(-1) {}
-	TerrainTile(uint32_t level) : m_Level(level) {}
+	TerrainTile(
+		std::shared_ptr<donut::engine::MeshInfo>,
+		uint32_t level
+	);
 
 private:
 	// Which level of the tree this tile exists at
 	uint32_t m_Level;
-	// The mesh instance to render this terrain tile
-	// The important thing is the transform
-	// This is stored in the instance buffer and is looked up via the TerrainTile index
-	std::shared_ptr<donut::engine::MeshInstance> m_Instance;
 
-	// TODO: Don't know if I actually need to keep track of children with pointers since everything is in a contiguous array
-	TerrainTile* m_Parent = nullptr;
-	std::array<TerrainTile*, 4> m_Children{ nullptr };
+	// The mesh instance is a leaf of the node in the tree
+	std::shared_ptr<donut::engine::SceneGraphNode> m_Node;
+	std::shared_ptr<donut::engine::MeshInstance> m_MeshInstance;
 };
 
 
@@ -34,7 +32,7 @@ class Terrain
 public:
 	struct CreateParams
 	{
-		float2 HeightmapExtents = float2{ 674.8f, 674.8f };
+		float2 HeightmapExtents = float2{ 512, 512 };
 		uint2 HeightmapResolution = uint2{ 256, 256 };
 
 		uint2 TerrainResolution = uint2{ 64, 64 };
@@ -43,6 +41,9 @@ public:
 	Terrain(const CreateParams& params);
 
 	void Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandList);
+
+private:
+	void CreateChildTilesFor(const std::shared_ptr<TerrainTile>& tile);
 
 private:
 	// The width and height of the entire terrain
@@ -57,5 +58,9 @@ private:
 	std::shared_ptr<class TerrainMesh> m_TerrainMesh;
 
 	// Terrain tile instances
-	std::vector<TerrainTile> m_Tiles;
+	uint m_TileCount;
+	std::vector<std::shared_ptr<TerrainTile>> m_Tiles;
+
+	// Scene graph objects
+
 };

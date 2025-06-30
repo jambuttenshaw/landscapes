@@ -5,8 +5,6 @@
 #include <donut/engine/SceneTypes.h>
 #include <nvrhi/nvrhi.h>
 
-#include "terrain_tree.h"
-
 
 class TerrainMesh
 {
@@ -16,7 +14,7 @@ public:
 	void InitResources(
 		nvrhi::IDevice* device,
 		nvrhi::ICommandList* commandList,
-		const std::vector<TerrainTile>& tileInstances);
+		uint32_t instanceCount);
 
 	const std::shared_ptr<donut::engine::MeshInfo>& GetMeshInfo() const { return m_MeshInfo; }
 
