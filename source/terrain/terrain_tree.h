@@ -12,7 +12,8 @@ class TerrainTile
 {
 public:
 	TerrainTile(
-		std::shared_ptr<donut::engine::MeshInfo>,
+		std::shared_ptr<donut::engine::SceneGraphNode> parent,
+		std::shared_ptr<donut::engine::MeshInfo> terrainMesh,
 		uint32_t level
 	);
 
