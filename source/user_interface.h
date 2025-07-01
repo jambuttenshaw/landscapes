@@ -13,6 +13,8 @@ struct UIData
 
 	bool DrawTerrain = true;
 	bool DrawObjects = true;
+
+	int TerrainLOD = 0;
 };
 
 

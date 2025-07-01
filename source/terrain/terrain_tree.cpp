@@ -69,7 +69,7 @@ TerrainTile::TerrainTile(
 	m_Node = std::make_shared<engine::SceneGraphNode>();
 	sceneGraph->Attach(parent, m_Node);
 
-	m_MeshInstance = std::make_shared<engine::MeshInstance>(std::move(terrainMesh));
+	m_MeshInstance = std::make_shared<TerrainMeshInstance>(std::move(terrainMesh), m_TileIndex);
 	m_Node->SetLeaf(m_MeshInstance);
 }
 
@@ -79,6 +79,7 @@ Terrain::Terrain(const CreateParams& params)
 	, m_HeightmapResolution(params.HeightmapResolution)
 	, m_HeightmapMetersPerPixel(params.HeightmapExtents / static_cast<float2>(m_HeightmapResolution))
 	, m_TerrainResolution(params.TerrainResolution)
+	, m_NumLevels(-1)
 {
 	
 }
@@ -87,14 +88,14 @@ void Terrain::Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandList, eng
 {
 	// Calculate the maximum number of tiles needed to express the entire terrain at the highest level of detail
 	uint tileCount = 0;
-	uint numLevels = 0;
+	m_NumLevels = 0;
 
 	uint tilesInLevel = 1;
 	uint verticesAlongEdge = max(m_TerrainResolution.x, m_TerrainResolution.y);
 	while (all(verticesAlongEdge <= m_HeightmapResolution))
 	{
 		tileCount += tilesInLevel;
-		numLevels++;
+		m_NumLevels++;
 
 		tilesInLevel *= 4;
 		verticesAlongEdge *= 2;
@@ -116,7 +117,14 @@ void Terrain::Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandList, eng
 		// Recursively populate the tree
 		float3 scale = { m_HeightmapExtents.x, 1, m_HeightmapExtents.y };
 		float3 offset = { 0, 0, 0 };
-		CreateSubtreeFor(sceneGraph, tileInstanceData, nullptr, numLevels - 1, scale, offset);
+		CreateSubtreeFor(sceneGraph, tileInstanceData, nullptr, m_NumLevels - 1, scale, offset);
+	}
+
+	// Finally copy instance data into the instance buffer
+	{
+		commandList->beginTrackingBufferState(m_Buffers->instanceBuffer, nvrhi::ResourceStates::CopyDest);
+		commandList->writeBuffer(m_Buffers->instanceBuffer, tileInstanceData.data(), tileInstanceData.size() * sizeof(InstanceData));
+		commandList->setPermanentBufferState(m_Buffers->instanceBuffer, nvrhi::ResourceStates::ShaderResource);
 	}
 }
 
@@ -183,13 +191,13 @@ void Terrain::CreateMesh(nvrhi::IDevice* device, nvrhi::ICommandList* commandLis
 		geometry->numIndices = static_cast<uint32_t>(indices.size());
 		geometry->numVertices = static_cast<uint32_t>(positions.size());
 
-		m_MeshInfo = std::make_shared<engine::MeshInfo>();
-		m_MeshInfo->name = "CubeMesh";
-		m_MeshInfo->buffers = m_Buffers;
-		m_MeshInfo->objectSpaceBounds = box3(float3(-0.5f), float3(0.5f));
-		m_MeshInfo->totalIndices = geometry->numIndices;
-		m_MeshInfo->totalVertices = geometry->numVertices;
-		m_MeshInfo->geometries.push_back(geometry);
+		m_TerrainMeshInfo = std::make_shared<engine::MeshInfo>();
+		m_TerrainMeshInfo->name = "TerrainMesh";
+		m_TerrainMeshInfo->buffers = m_Buffers;
+		m_TerrainMeshInfo->objectSpaceBounds = box3(float3(-0.5f), float3(0.5f));
+		m_TerrainMeshInfo->totalIndices = geometry->numIndices;
+		m_TerrainMeshInfo->totalVertices = geometry->numVertices;
+		m_TerrainMeshInfo->geometries.push_back(geometry);
 	}
 }
 
@@ -207,7 +215,7 @@ uint Terrain::CreateSubtreeFor(
 	m_Tiles.emplace_back(std::make_shared<TerrainTile>(
 		sceneGraph,
 		parent ? parent->GetGraphNode() : m_TerrainRootNode,
-		m_MeshInfo,
+		m_TerrainMeshInfo,
 		level,
 		tileIndex,
 		parent ? parent->GetTileIndex() : TerrainTile::InvalidIndex
@@ -239,4 +247,32 @@ uint Terrain::CreateSubtreeFor(
 	}
 
 	return tileIndex;
+}
+
+
+void Terrain::GetAllTilesAtLevel(uint level, std::vector<TerrainTile*>& outTiles) const
+{
+	assert(level < m_NumLevels);
+	outTiles.clear();
+
+	uint tileCount = static_cast<uint>(pow(4, (m_NumLevels - 1) - level));
+	outTiles.reserve(tileCount);
+
+	GetAllTilesAtLevel_Impl(0, level, outTiles);
+}
+
+void Terrain::GetAllTilesAtLevel_Impl(uint nodeIndex, uint level, std::vector<TerrainTile*>& outTiles) const
+{
+	const auto& tile = m_Tiles.at(nodeIndex);
+	if (tile->GetLevel() == level)
+	{
+		outTiles.push_back(tile.get());
+	}
+	else if (tile->HasChildren())
+	{
+		GetAllTilesAtLevel_Impl(tile->GetChildIndex(0), level, outTiles);
+		GetAllTilesAtLevel_Impl(tile->GetChildIndex(1), level, outTiles);
+		GetAllTilesAtLevel_Impl(tile->GetChildIndex(2), level, outTiles);
+		GetAllTilesAtLevel_Impl(tile->GetChildIndex(3), level, outTiles);
+	}
 }

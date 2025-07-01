@@ -7,7 +7,23 @@
 using namespace donut::math;
 
 
-// TODO: This will be / contain a scene graph node/leaf
+class TerrainMeshInstance : public donut::engine::MeshInstance
+{
+public:
+	explicit TerrainMeshInstance(std::shared_ptr<donut::engine::MeshInfo> mesh, uint tileIndex)
+		: MeshInstance(std::move(mesh))
+		, m_TerrainTileIndex(tileIndex)
+	{
+	}
+
+	inline uint GetTerrainTileIndex() const { return m_TerrainTileIndex; }
+
+private:
+	// Index into the terrain tile instance buffer for looking up instance data
+	uint m_TerrainTileIndex;
+};
+
+
 class TerrainTile
 {
 public:
@@ -31,8 +47,11 @@ public:
 	inline uint GetChildIndex(uint child) const { return m_ChildrenIndices.at(child); }
 	inline void SetChildIndex(uint child, uint index) { m_ChildrenIndices[child] = index; }
 
+	// Works on assumption that node either has all children or no children
+	inline bool HasChildren() const { return m_ChildrenIndices.at(0) != InvalidIndex; }
+
 	inline const std::shared_ptr<donut::engine::SceneGraphNode>& GetGraphNode() const { return m_Node; }
-	inline const std::shared_ptr<donut::engine::MeshInstance>& GetMeshInstance() const { return m_MeshInstance; }
+	inline const std::shared_ptr<TerrainMeshInstance>& GetMeshInstance() const { return m_MeshInstance; }
 
 private:
 	// Which level of the tree this tile exists at
@@ -45,7 +64,7 @@ private:
 
 	// The mesh instance is a leaf of the node in the tree
 	std::shared_ptr<donut::engine::SceneGraphNode> m_Node;
-	std::shared_ptr<donut::engine::MeshInstance> m_MeshInstance;
+	std::shared_ptr<TerrainMeshInstance> m_MeshInstance;
 };
 
 
@@ -58,12 +77,16 @@ public:
 		float2 HeightmapExtents = float2{ 512, 512 };
 		uint2 HeightmapResolution = uint2{ 256, 256 };
 
-		uint2 TerrainResolution = uint2{ 64, 64 };
+		uint2 TerrainResolution = uint2{ 16, 16 };
 	};
 
 	Terrain(const CreateParams& params);
 
 	void Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandList, donut::engine::SceneGraph* sceneGraph);
+
+
+	inline uint GetNumLevels() const { return m_NumLevels; }
+	void GetAllTilesAtLevel(uint level, std::vector<TerrainTile*>& outTiles) const;
 
 private:
 
@@ -78,6 +101,8 @@ private:
 		float3 translation
 	);
 
+	void GetAllTilesAtLevel_Impl(uint nodeIndex, uint level, std::vector<TerrainTile*>& outTiles) const;
+
 private:
 	// The width and height of the entire terrain
 	float2 m_HeightmapExtents;
@@ -89,10 +114,12 @@ private:
 	// The same mesh is shared by all terrain tiles
 	uint2 m_TerrainResolution;
 	std::shared_ptr<donut::engine::BufferGroup> m_Buffers;
-	std::shared_ptr<donut::engine::MeshInfo> m_MeshInfo;
+	std::shared_ptr<donut::engine::MeshInfo> m_TerrainMeshInfo;
 
 	// Terrain tile instances
 	std::vector<std::shared_ptr<TerrainTile>> m_Tiles;
+	// Num of levels in the tree
+	uint m_NumLevels;
 
 	// Scene graph objects
 	std::shared_ptr<donut::engine::SceneGraphNode> m_TerrainRootNode;

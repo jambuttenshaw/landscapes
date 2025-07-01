@@ -8,7 +8,6 @@
 #include <donut/engine/ShaderFactory.h>
 
 
-
 class TerrainGBufferFillPass
 {
 public:

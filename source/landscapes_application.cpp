@@ -8,6 +8,7 @@
 #include <donut/engine/CommonRenderPasses.h>
 
 #include "donut/engine/FramebufferFactory.h"
+#include "passes/terrain_draw_strategy.h"
 
 using namespace donut;
 using namespace donut::math;
@@ -153,20 +154,10 @@ void LandscapesApplication::Render(nvrhi::IFramebuffer* framebuffer)
     m_GBuffer->Clear(m_CommandList);
 
     // Draw terrain
-    /*
     if (m_UI.DrawTerrain)
     {
-        render::DrawItem drawItem;
-        drawItem.instance = m_Scene.GetTerrainMeshInstance().get();
-        drawItem.mesh = drawItem.instance->GetMesh().get();
-        drawItem.geometry = drawItem.mesh->geometries[0].get();
-        drawItem.material = drawItem.geometry->material.get();
-        drawItem.buffers = drawItem.mesh->buffers.get();
-        drawItem.distanceToCamera = 0;
-        drawItem.cullMode = GetCullMode();
-
-        render::PassthroughDrawStrategy drawStrategy;
-        drawStrategy.SetData(&drawItem, 1);
+        TerrainDrawStrategy drawStrategy;
+        drawStrategy.SetData(m_Scene.GetTerrain().get(), static_cast<uint>(m_UI.TerrainLOD));
 
         m_TerrainGBufferPass->RenderTerrain(
             m_CommandList,
@@ -177,7 +168,6 @@ void LandscapesApplication::Render(nvrhi::IFramebuffer* framebuffer)
             drawStrategy
         );
     }
-	*/
 
     // Draw objects in scene
     if (m_UI.DrawObjects)

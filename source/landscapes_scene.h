@@ -12,21 +12,12 @@ public:
     LandscapesScene();
 	bool Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandList, donut::engine::TextureCache* textureCache);
 
+    inline const std::shared_ptr<Terrain>& GetTerrain() const { return m_Terrain; }
+    inline const std::shared_ptr<donut::engine::MeshInstance>& GetCubeMeshInstance() const { return m_CubeMeshInstance; }
 
-    inline const std::shared_ptr<donut::engine::MeshInstance>& GetCubeMeshInstance() const
-    {
-        return m_CubeMeshInstance;
-    }
+    inline const std::shared_ptr<donut::engine::SceneGraph>& GetSceneGraph() const { return m_SceneGraph; }
 
-    inline const std::shared_ptr<donut::engine::SceneGraph>& GetSceneGraph() const
-    {
-        return m_SceneGraph;
-    }
-
-    inline const std::vector<std::shared_ptr<donut::engine::Light>>& GetLights() const
-    {
-        return m_SceneGraph->GetLights();
-    }
+    inline const std::vector<std::shared_ptr<donut::engine::Light>>& GetLights() const { return m_SceneGraph->GetLights(); }
 
 private:
 

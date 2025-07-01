@@ -8,6 +8,13 @@
 
 DECLARE_CBUFFER(GBufferFillConstants, c_GBuffer, GBUFFER_BINDING_VIEW_CONSTANTS, GBUFFER_SPACE_VIEW);
 
+struct TerrainPushConstants
+{
+    uint startInstanceLocation;
+};
+DECLARE_PUSH_CONSTANTS(TerrainPushConstants, g_Push, GBUFFER_BINDING_PUSH_CONSTANTS, GBUFFER_SPACE_INPUT);
+
+
 StructuredBuffer<InstanceData> t_Instances : REGISTER_SRV(GBUFFER_BINDING_INSTANCE_BUFFER, GBUFFER_SPACE_INPUT);
 StructuredBuffer<float3> t_Positions : REGISTER_SRV(GBUFFER_BINDING_VERTEX_BUFFER, GBUFFER_SPACE_INPUT);
 
@@ -21,6 +28,8 @@ void gbuffer_vs(
 )
 {
     o_instance = i_instance;
+
+    i_instance += g_Push.startInstanceLocation;
 
     const InstanceData instance = t_Instances[i_instance];
 

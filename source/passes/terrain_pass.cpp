@@ -2,6 +2,7 @@
 
 #include <donut/core/log.h>
 
+#include "../terrain/terrain_tree.h"
 #include "donut/engine/SceneTypes.h"
 #include "donut/render/DrawStrategy.h"
 #include "nvrhi/utils.h"
@@ -10,6 +11,11 @@ using namespace donut;
 using namespace math;
 
 #include <donut/shaders/gbuffer_cb.h>
+
+struct TerrainPushConstants
+{
+	uint startInstanceLocation;
+};
 
 
 TerrainGBufferFillPass::TerrainGBufferFillPass(nvrhi::IDevice* device)
@@ -40,10 +46,6 @@ void TerrainGBufferFillPass::RenderTerrain(
 	donut::render::IDrawStrategy& drawStrategy
 )
 {
-	const render::DrawItem* drawItem = drawStrategy.GetNextItem();
-	if (!drawItem)
-		return;
-
 	// Update view constant buffer
 	GBufferFillConstants gbufferConstants = {};
 	view->FillPlanarViewConstants(gbufferConstants.view);
@@ -56,69 +58,82 @@ void TerrainGBufferFillPass::RenderTerrain(
 	state.viewport = view->GetViewportState();
 	state.shadingRateState = view->GetVariableRateShadingState();
 
-	PipelineKey key;
-	key.value = 0;
-	key.bits.frontCounterClockwise = view->IsMirrored();
-	key.bits.reverseDepth = view->IsReverseDepth();
-	key.bits.wireframe = wireframe;
-	key.bits.cullMode = drawItem->cullMode;
+	PipelineKey keyTemplate;
+	keyTemplate.value = 0;
+	keyTemplate.bits.frontCounterClockwise = view->IsMirrored();
+	keyTemplate.bits.reverseDepth = view->IsReverseDepth();
+	keyTemplate.bits.wireframe = wireframe;
 
-	// Get graphics pipeline
-	nvrhi::GraphicsPipelineHandle& pipeline = m_Pipelines[key.value];
-
-	if (!pipeline)
+	while (const render::DrawItem* drawItem = drawStrategy.GetNextItem())
 	{
-		std::lock_guard lock(m_Mutex);
+		PipelineKey key = keyTemplate;
+		key.bits.cullMode = drawItem->cullMode;
+
+		// Get graphics pipeline
+		nvrhi::GraphicsPipelineHandle& pipeline = m_Pipelines[key.value];
 
 		if (!pipeline)
 		{
-			pipeline = CreateGraphicsPipeline(key, state.framebuffer);
+			std::lock_guard lock(m_Mutex);
+
+			if (!pipeline)
+			{
+				pipeline = CreateGraphicsPipeline(key, state.framebuffer);
+			}
+
+			if (!pipeline)
+			{
+				return;
+			}
 		}
 
-		if (!pipeline)
+		assert(pipeline->getFramebufferInfo() == state.framebuffer->getFramebufferInfo());
+
+		state.pipeline = pipeline;
+
+		// No index buffer is used for terrain
+		state.indexBuffer = { drawItem->buffers->indexBuffer, nvrhi::Format::R32_UINT, 0 };
+
+		nvrhi::BindingSetHandle inputBindingSet;
+		auto it = m_InputBindingSets.find(drawItem->buffers);
+		if (it == m_InputBindingSets.end())
 		{
-			return;
+			auto bindingSetDesc = nvrhi::BindingSetDesc()
+				.addItem(nvrhi::BindingSetItem::StructuredBuffer_SRV(GBUFFER_BINDING_INSTANCE_BUFFER, drawItem->buffers->instanceBuffer))
+				.addItem(nvrhi::BindingSetItem::StructuredBuffer_SRV(GBUFFER_BINDING_VERTEX_BUFFER, drawItem->buffers->vertexBuffer))
+				.addItem(nvrhi::BindingSetItem::PushConstants(GBUFFER_BINDING_PUSH_CONSTANTS, sizeof(TerrainPushConstants)));
+
+			inputBindingSet = m_Device->createBindingSet(bindingSetDesc, m_InputBindingLayout);
+			m_InputBindingSets[drawItem->buffers] = inputBindingSet;
 		}
+		else
+		{
+			inputBindingSet = it->second;
+		}
+
+		state.bindings = {
+			m_ViewBindingSet,
+			inputBindingSet
+		};
+
+		commandList->setGraphicsState(state);
+
+		TerrainPushConstants constants{};
+		auto terrainMeshInstance = dynamic_cast<const TerrainMeshInstance*>(drawItem->instance);
+		assert(terrainMeshInstance);
+		constants.startInstanceLocation = terrainMeshInstance->GetTerrainTileIndex();
+
+		commandList->setPushConstants(&constants, sizeof(constants));
+
+		nvrhi::DrawArguments args;
+		args.vertexCount = drawItem->geometry->numIndices;
+		args.instanceCount = 1;
+		args.startVertexLocation = 0;
+		args.startIndexLocation = 0;
+		args.startInstanceLocation = 0;
+
+		commandList->drawIndexed(args);
 	}
-
-	assert(pipeline->getFramebufferInfo() == state.framebuffer->getFramebufferInfo());
-
-	state.pipeline = pipeline;
-
-	// No index buffer is used for terrain
-	state.indexBuffer = { drawItem->buffers->indexBuffer, nvrhi::Format::R32_UINT, 0 };
-
-	nvrhi::BindingSetHandle inputBindingSet;
-	auto it = m_InputBindingSets.find(drawItem->buffers);
-	if (it == m_InputBindingSets.end())
-	{
-		auto bindingSetDesc = nvrhi::BindingSetDesc()
-			.addItem(nvrhi::BindingSetItem::StructuredBuffer_SRV(GBUFFER_BINDING_INSTANCE_BUFFER, drawItem->buffers->instanceBuffer))
-			.addItem(nvrhi::BindingSetItem::StructuredBuffer_SRV(GBUFFER_BINDING_VERTEX_BUFFER, drawItem->buffers->vertexBuffer));
-
-		inputBindingSet = m_Device->createBindingSet(bindingSetDesc, m_InputBindingLayout);
-		m_InputBindingSets[drawItem->buffers] = inputBindingSet;
-	}
-	else
-	{
-		inputBindingSet = it->second;
-	}
-
-	state.bindings = {
-		m_ViewBindingSet,
-		inputBindingSet
-	};
-
-	commandList->setGraphicsState(state);
-
-	nvrhi::DrawArguments args;
-	args.vertexCount = drawItem->geometry->numIndices;
-	args.instanceCount = 1;
-	args.startVertexLocation = 0;
-	args.startIndexLocation = 0;
-	args.startInstanceLocation = 0;
-
-	commandList->drawIndexed(args);
 }
 
 nvrhi::ShaderHandle TerrainGBufferFillPass::CreateVertexShader(engine::ShaderFactory& shaderFactory)
@@ -145,7 +160,8 @@ nvrhi::BindingLayoutHandle TerrainGBufferFillPass::CreateInputBindingLayout()
 		.setRegisterSpace(GBUFFER_SPACE_INPUT)
 		.setRegisterSpaceIsDescriptorSet(true)
 		.addItem(nvrhi::BindingLayoutItem::StructuredBuffer_SRV(GBUFFER_BINDING_INSTANCE_BUFFER))
-		.addItem(nvrhi::BindingLayoutItem::StructuredBuffer_SRV(GBUFFER_BINDING_VERTEX_BUFFER));
+		.addItem(nvrhi::BindingLayoutItem::StructuredBuffer_SRV(GBUFFER_BINDING_VERTEX_BUFFER))
+		.addItem(nvrhi::BindingLayoutItem::PushConstants(GBUFFER_BINDING_PUSH_CONSTANTS, sizeof(TerrainPushConstants)));
 
 	return m_Device->createBindingLayout(bindingLayoutDesc);
 }

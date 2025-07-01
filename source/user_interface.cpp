@@ -28,5 +28,7 @@ void UIRenderer::buildUI()
 	ImGui::Checkbox("Draw Terrain", &m_UI.DrawTerrain);
 	ImGui::Checkbox("Draw Objects", &m_UI.DrawObjects);
 
+	ImGui::SliderInt("Terrain LOD", &m_UI.TerrainLOD, 0, 4);
+
 	ImGui::End();
 }
