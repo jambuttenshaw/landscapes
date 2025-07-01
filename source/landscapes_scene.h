@@ -3,7 +3,6 @@
 #include <donut/engine/TextureCache.h>
 #include <donut/engine/SceneGraph.h>
 
-#include "terrain/terrain_mesh.h"
 #include "terrain/terrain_tree.h"
 
 

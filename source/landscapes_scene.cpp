@@ -1,7 +1,5 @@
 #include "landscapes_scene.h"
 
-#include "terrain/terrain_mesh.h"
-
 using namespace donut;
 using namespace donut::math;
 
@@ -153,6 +151,10 @@ LandscapesScene::LandscapesScene()
 
 bool LandscapesScene::Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandList, donut::engine::TextureCache* textureCache)
 {
+    m_SceneGraph = std::make_shared<engine::SceneGraph>();
+    auto rootNode = std::make_shared<engine::SceneGraphNode>();
+    m_SceneGraph->SetRootNode(rootNode);
+
     {
         m_GreyMaterial = std::make_shared<engine::Material>();
         m_GreyMaterial->name = "GreyMaterial";
@@ -206,12 +208,8 @@ bool LandscapesScene::Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandL
 
     {
         m_Terrain = std::make_shared<Terrain>(Terrain::CreateParams{});
-        m_Terrain->Init(device, commandList);
+        m_Terrain->Init(device, commandList, m_SceneGraph.get());
     }
-
-    m_SceneGraph = std::make_shared<engine::SceneGraph>();
-    auto rootNode = std::make_shared<engine::SceneGraphNode>();
-    m_SceneGraph->SetRootNode(rootNode);
 
     auto cubeNode = std::make_shared<engine::SceneGraphNode>();
     m_SceneGraph->Attach(rootNode, cubeNode);

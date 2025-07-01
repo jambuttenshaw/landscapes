@@ -1,13 +1,12 @@
 #include "terrain_tree.h"
 
-#include "terrain_mesh.h"
 #include "donut/shaders/bindless.h"
 
 using namespace donut;
 using namespace donut::math;
 
 
-static void CreateTerrainMesh(
+static void CreateTerrainMeshData(
 	uint2 resolution,
 	std::vector<float3>& outPositions,
 	std::vector<uint32_t>& outIndices
@@ -58,11 +57,15 @@ TerrainTile::TerrainTile(
 	const std::shared_ptr<donut::engine::SceneGraphNode>& parent, 
 	std::shared_ptr<donut::engine::MeshInfo> terrainMesh, 
 	uint level,
-	uint tileIndex
+	uint tileIndex,
+	uint parentIndex
 )
 	: m_Level(level)
 	, m_TileIndex(tileIndex)
+	, m_ParentIndex(parentIndex)
 {
+	std::fill(m_ChildrenIndices.begin(), m_ChildrenIndices.end(), InvalidIndex);
+
 	m_Node = std::make_shared<engine::SceneGraphNode>();
 	sceneGraph->Attach(parent, m_Node);
 
@@ -83,88 +86,22 @@ Terrain::Terrain(const CreateParams& params)
 void Terrain::Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandList, engine::SceneGraph* sceneGraph)
 {
 	// Calculate the maximum number of tiles needed to express the entire terrain at the highest level of detail
-	uint tilesInLevel = 1;
 	uint tileCount = 0;
+	uint numLevels = 0;
+
+	uint tilesInLevel = 1;
 	uint verticesAlongEdge = max(m_TerrainResolution.x, m_TerrainResolution.y);
 	while (all(verticesAlongEdge <= m_HeightmapResolution))
 	{
 		tileCount += tilesInLevel;
+		numLevels++;
+
 		tilesInLevel *= 4;
 		verticesAlongEdge *= 2;
 	}
 
 	// Create mesh
-	{
-		std::vector<float3> positions;
-		std::vector<uint32_t> indices;
-
-		CreateTerrainMesh(m_TerrainResolution, positions, indices);
-
-		m_Buffers = std::make_shared<engine::BufferGroup>();
-
-		// Create vertex buffer
-		{
-			const uint64_t positionsByteSize = positions.size() * sizeof(positions[0]);
-
-			m_Buffers->getVertexBufferRange(engine::VertexAttribute::Position).setByteOffset(0).setByteSize(positionsByteSize);
-
-			nvrhi::BufferDesc vertexBufferDesc;
-			vertexBufferDesc.byteSize = positionsByteSize;
-			vertexBufferDesc.canHaveRawViews = true; // vertex buffers accessed via structured buffers
-			vertexBufferDesc.structStride = sizeof(positions[0]);
-			vertexBufferDesc.debugName = "TerrainVertexBuffer";
-			vertexBufferDesc.initialState = nvrhi::ResourceStates::CopyDest;
-			m_Buffers->vertexBuffer = device->createBuffer(vertexBufferDesc);
-
-			commandList->beginTrackingBufferState(m_Buffers->vertexBuffer, nvrhi::ResourceStates::CopyDest);
-			commandList->writeBuffer(m_Buffers->vertexBuffer, positions.data(), positionsByteSize);
-			commandList->setPermanentBufferState(m_Buffers->vertexBuffer, nvrhi::ResourceStates::ShaderResource);
-		}
-
-		// Create index buffer
-		{
-			const uint64_t indicesByteSize = indices.size() * sizeof(indices[0]);
-
-			nvrhi::BufferDesc indexBufferDesc;
-			indexBufferDesc.byteSize = indicesByteSize;
-			indexBufferDesc.isIndexBuffer = true;
-			indexBufferDesc.debugName = "TerrainIndexBuffer";
-			indexBufferDesc.initialState = nvrhi::ResourceStates::CopyDest;
-			m_Buffers->indexBuffer = device->createBuffer(indexBufferDesc);
-
-			commandList->beginTrackingBufferState(m_Buffers->indexBuffer, nvrhi::ResourceStates::CopyDest);
-			commandList->writeBuffer(m_Buffers->indexBuffer, indices.data(), indicesByteSize);
-			commandList->setPermanentBufferState(m_Buffers->indexBuffer, nvrhi::ResourceStates::IndexBuffer);
-		}
-
-		// Create instance buffer
-		// This will be populated later once we have set up all the tiles
-		{
-			nvrhi::BufferDesc instanceBufferDesc;
-			instanceBufferDesc.byteSize = tileCount * sizeof(InstanceData);
-			instanceBufferDesc.canHaveRawViews = true;
-			instanceBufferDesc.structStride = sizeof(InstanceData);
-			instanceBufferDesc.debugName = "TerrainIndexBuffer";
-			instanceBufferDesc.initialState = nvrhi::ResourceStates::CopyDest;
-			m_Buffers->instanceBuffer = device->createBuffer(instanceBufferDesc);
-		}
-
-		// Create mesh info
-		{
-			auto geometry = std::make_shared<engine::MeshGeometry>();
-			geometry->material = nullptr;
-			geometry->numIndices = static_cast<uint32_t>(indices.size());
-			geometry->numVertices = static_cast<uint32_t>(positions.size());
-
-			m_MeshInfo = std::make_shared<engine::MeshInfo>();
-			m_MeshInfo->name = "CubeMesh";
-			m_MeshInfo->buffers = m_Buffers;
-			m_MeshInfo->objectSpaceBounds = box3(float3(-0.5f), float3(0.5f));
-			m_MeshInfo->totalIndices = geometry->numIndices;
-			m_MeshInfo->totalVertices = geometry->numVertices;
-			m_MeshInfo->geometries.push_back(geometry);
-		}
-	}
+	CreateMesh(device, commandList, tileCount);
 
 	// Create root node in scene graph for terrain tile hierarchy to attach to
 	m_TerrainRootNode = std::make_shared<engine::SceneGraphNode>();
@@ -177,40 +114,129 @@ void Terrain::Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandList, eng
 
 	{
 		// Recursively populate the tree
-		CreateChildTilesFor(sceneGraph, tileInstanceData, m_TerrainRootNode, 0);
+		float3 scale = { m_HeightmapExtents.x, 1, m_HeightmapExtents.y };
+		float3 offset = { 0, 0, 0 };
+		CreateSubtreeFor(sceneGraph, tileInstanceData, nullptr, numLevels - 1, scale, offset);
 	}
 }
 
-void Terrain::CreateChildTilesFor(
+void Terrain::CreateMesh(nvrhi::IDevice* device, nvrhi::ICommandList* commandList, uint tileCount)
+{
+	m_Buffers = std::make_shared<engine::BufferGroup>();
+
+	std::vector<float3> positions;
+	std::vector<uint32_t> indices;
+
+	CreateTerrainMeshData(m_TerrainResolution, positions, indices);
+
+	// Create vertex buffer
+	{
+		const uint64_t positionsByteSize = positions.size() * sizeof(positions[0]);
+
+		m_Buffers->getVertexBufferRange(engine::VertexAttribute::Position).setByteOffset(0).setByteSize(positionsByteSize);
+
+		nvrhi::BufferDesc vertexBufferDesc;
+		vertexBufferDesc.byteSize = positionsByteSize;
+		vertexBufferDesc.canHaveRawViews = true; // vertex buffers accessed via structured buffers
+		vertexBufferDesc.structStride = sizeof(positions[0]);
+		vertexBufferDesc.debugName = "TerrainVertexBuffer";
+		vertexBufferDesc.initialState = nvrhi::ResourceStates::CopyDest;
+		m_Buffers->vertexBuffer = device->createBuffer(vertexBufferDesc);
+
+		commandList->beginTrackingBufferState(m_Buffers->vertexBuffer, nvrhi::ResourceStates::CopyDest);
+		commandList->writeBuffer(m_Buffers->vertexBuffer, positions.data(), positionsByteSize);
+		commandList->setPermanentBufferState(m_Buffers->vertexBuffer, nvrhi::ResourceStates::ShaderResource);
+	}
+
+	// Create index buffer
+	{
+		const uint64_t indicesByteSize = indices.size() * sizeof(indices[0]);
+
+		nvrhi::BufferDesc indexBufferDesc;
+		indexBufferDesc.byteSize = indicesByteSize;
+		indexBufferDesc.isIndexBuffer = true;
+		indexBufferDesc.debugName = "TerrainIndexBuffer";
+		indexBufferDesc.initialState = nvrhi::ResourceStates::CopyDest;
+		m_Buffers->indexBuffer = device->createBuffer(indexBufferDesc);
+
+		commandList->beginTrackingBufferState(m_Buffers->indexBuffer, nvrhi::ResourceStates::CopyDest);
+		commandList->writeBuffer(m_Buffers->indexBuffer, indices.data(), indicesByteSize);
+		commandList->setPermanentBufferState(m_Buffers->indexBuffer, nvrhi::ResourceStates::IndexBuffer);
+	}
+
+	// Create instance buffer
+	// This will be populated later once we have set up all the tiles
+	{
+		nvrhi::BufferDesc instanceBufferDesc;
+		instanceBufferDesc.byteSize = tileCount * sizeof(InstanceData);
+		instanceBufferDesc.canHaveRawViews = true;
+		instanceBufferDesc.structStride = sizeof(InstanceData);
+		instanceBufferDesc.debugName = "TerrainIndexBuffer";
+		instanceBufferDesc.initialState = nvrhi::ResourceStates::CopyDest;
+		m_Buffers->instanceBuffer = device->createBuffer(instanceBufferDesc);
+	}
+
+	// Create mesh info
+	{
+		auto geometry = std::make_shared<engine::MeshGeometry>();
+		geometry->material = nullptr;
+		geometry->numIndices = static_cast<uint32_t>(indices.size());
+		geometry->numVertices = static_cast<uint32_t>(positions.size());
+
+		m_MeshInfo = std::make_shared<engine::MeshInfo>();
+		m_MeshInfo->name = "CubeMesh";
+		m_MeshInfo->buffers = m_Buffers;
+		m_MeshInfo->objectSpaceBounds = box3(float3(-0.5f), float3(0.5f));
+		m_MeshInfo->totalIndices = geometry->numIndices;
+		m_MeshInfo->totalVertices = geometry->numVertices;
+		m_MeshInfo->geometries.push_back(geometry);
+	}
+}
+
+uint Terrain::CreateSubtreeFor(
 	donut::engine::SceneGraph* sceneGraph,
 	std::vector<InstanceData>& instanceData,
-	std::shared_ptr<donut::engine::SceneGraphNode> parent,
-	uint level
+	TerrainTile* parent,
+	uint level,
+	float3 scale,
+	float3 offset
 )
 {
 	// Create tile instance
 	uint tileIndex = static_cast<uint>(m_Tiles.size());
 	m_Tiles.emplace_back(std::make_shared<TerrainTile>(
 		sceneGraph,
-		std::move(parent),
+		parent ? parent->GetGraphNode() : m_TerrainRootNode,
 		m_MeshInfo,
 		level,
-		tileIndex
+		tileIndex,
+		parent ? parent->GetTileIndex() : TerrainTile::InvalidIndex
 	));
-	TerrainTile& tile = *m_Tiles.back();
+	TerrainTile* tile = m_Tiles.back().get();
 
 	// Calculate tile transform and add it to instance data
 	InstanceData& iData = instanceData.emplace_back();
-	iData.transform = float3x4(transpose(affineToHomogeneous(affine3::identity())));
+	iData.transform = float3x4(transpose(affineToHomogeneous(scaling(scale) * translation(offset))));
 	iData.prevTransform = iData.transform;
 
 	// Recursively create all children
-	if (level < )
+	if (level > 0)
 	{
+		// Compute transforms for children
+		float3 halfScale = scale * float3{ 0.5f, 1.0f, 0.5f };
+		float3 offsets[4] = {
+			offset + 0.5f * halfScale * float3{ -1, 0, -1 },
+			offset + 0.5f * halfScale * float3{  1, 0, -1 },
+			offset + 0.5f * halfScale * float3{ -1, 0,  1 },
+			offset + 0.5f * halfScale * float3{  1, 0,  1 }
+		};
+
 		// Create the 4 children for this node
-		CreateChildTilesFor(sceneGraph, instanceData, tile.GetGraphNode(), level + 1);
-		CreateChildTilesFor(sceneGraph, instanceData, tile.GetGraphNode(), level + 1);
-		CreateChildTilesFor(sceneGraph, instanceData, tile.GetGraphNode(), level + 1);
-		CreateChildTilesFor(sceneGraph, instanceData, tile.GetGraphNode(), level + 1);
+		tile->SetChildIndex(0, CreateSubtreeFor(sceneGraph, instanceData, tile, level - 1, halfScale, offsets[0]));
+		tile->SetChildIndex(1, CreateSubtreeFor(sceneGraph, instanceData, tile, level - 1, halfScale, offsets[1]));
+		tile->SetChildIndex(2, CreateSubtreeFor(sceneGraph, instanceData, tile, level - 1, halfScale, offsets[2]));
+		tile->SetChildIndex(3, CreateSubtreeFor(sceneGraph, instanceData, tile, level - 1, halfScale, offsets[3]));
 	}
+
+	return tileIndex;
 }

@@ -11,16 +11,25 @@ using namespace donut::math;
 class TerrainTile
 {
 public:
+	static constexpr uint InvalidIndex = static_cast<uint>(-1);
+public:
 	TerrainTile(
 		donut::engine::SceneGraph* sceneGraph,
 		const std::shared_ptr<donut::engine::SceneGraphNode>& parent,
 		std::shared_ptr<donut::engine::MeshInfo> terrainMesh,
 		uint level,
-		uint tileIndex
+		uint tileIndex,
+		uint parentIndex
 	);
 
 	inline uint GetLevel() const { return m_Level; }
 	inline uint GetTileIndex() const { return m_TileIndex; }
+
+	inline uint GetParentIndex() const { return m_ParentIndex; }
+	inline bool IsRoot() const { return m_ParentIndex == InvalidIndex; }
+
+	inline uint GetChildIndex(uint child) const { return m_ChildrenIndices.at(child); }
+	inline void SetChildIndex(uint child, uint index) { m_ChildrenIndices[child] = index; }
 
 	inline const std::shared_ptr<donut::engine::SceneGraphNode>& GetGraphNode() const { return m_Node; }
 	inline const std::shared_ptr<donut::engine::MeshInstance>& GetMeshInstance() const { return m_MeshInstance; }
@@ -30,6 +39,9 @@ private:
 	uint m_Level;
 	// The index into the global tile array for this tile (for looking up instance data in instance buffer)
 	uint m_TileIndex;
+
+	uint m_ParentIndex;
+	std::array<uint, 4> m_ChildrenIndices;
 
 	// The mesh instance is a leaf of the node in the tree
 	std::shared_ptr<donut::engine::SceneGraphNode> m_Node;
@@ -54,11 +66,16 @@ public:
 	void Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandList, donut::engine::SceneGraph* sceneGraph);
 
 private:
-	void CreateChildTilesFor(
+
+	void CreateMesh(nvrhi::IDevice* device, nvrhi::ICommandList* commandList, uint tileCount);
+
+	uint CreateSubtreeFor(
 		donut::engine::SceneGraph* sceneGraph,
 		std::vector<struct InstanceData>& instanceData,
-		std::shared_ptr<donut::engine::SceneGraphNode> parent,
-		uint level
+		TerrainTile* parent,
+		uint level,
+		float3 scale,
+		float3 translation
 	);
 
 private:
