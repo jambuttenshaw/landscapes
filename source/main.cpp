@@ -3,8 +3,8 @@
 #include <donut/app/DeviceManager.h>
 #include <donut/core/log.h>
 
-#include "landscapes_application.h"
-#include "user_interface.h"
+#include "LandscapesApplication.h"
+#include "UserInterface.h"
 
 using namespace donut;
 

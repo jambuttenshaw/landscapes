@@ -1,11 +1,11 @@
-#include "terrain_pass.h"
+#include "TerrainPass.h"
 
-#include <donut/core/log.h>
+#include <donut/engine/SceneTypes.h>
+#include <donut/render/DrawStrategy.h>
+#include <donut/engine/ShaderFactory.h>
+#include <nvrhi/utils.h>
 
-#include "../terrain/terrain_tree.h"
-#include "donut/engine/SceneTypes.h"
-#include "donut/render/DrawStrategy.h"
-#include "nvrhi/utils.h"
+#include "../terrain/Terrain.h"
 
 using namespace donut;
 using namespace math;
@@ -138,7 +138,7 @@ void TerrainGBufferFillPass::RenderTerrain(
 
 nvrhi::ShaderHandle TerrainGBufferFillPass::CreateVertexShader(engine::ShaderFactory& shaderFactory)
 {
-	char const* sourceFileName = "app/landscape_shaders.hlsl";
+	char const* sourceFileName = "app/LandscapeShaders.hlsl";
 
 	return shaderFactory.CreateAutoShader(sourceFileName, "gbuffer_vs",
 		DONUT_MAKE_PLATFORM_SHADER(g_landscape_shaders_gbuffer_vs), nullptr, nvrhi::ShaderType::Vertex);
@@ -146,7 +146,7 @@ nvrhi::ShaderHandle TerrainGBufferFillPass::CreateVertexShader(engine::ShaderFac
 
 nvrhi::ShaderHandle TerrainGBufferFillPass::CreatePixelShader(engine::ShaderFactory& shaderFactory)
 {
-	char const* sourceFileName = "app/landscape_shaders.hlsl";
+	char const* sourceFileName = "app/LandscapeShaders.hlsl";
 
 	return shaderFactory.CreateAutoShader(sourceFileName, "gbuffer_ps", 
 		DONUT_MAKE_PLATFORM_SHADER(g_landscape_shaders_gbuffer_ps), nullptr, nvrhi::ShaderType::Pixel);

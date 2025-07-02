@@ -1,6 +1,6 @@
-#include "terrain_tree.h"
+#include "Terrain.h"
 
-#include "donut/shaders/bindless.h"
+#include <donut/shaders/bindless.h>
 
 using namespace donut;
 using namespace donut::math;
@@ -64,7 +64,7 @@ TerrainTile::TerrainTile(
 	, m_TileIndex(tileIndex)
 	, m_ParentIndex(parentIndex)
 {
-	std::fill(m_ChildrenIndices.begin(), m_ChildrenIndices.end(), InvalidIndex);
+	std::ranges::fill(m_ChildrenIndices, InvalidIndex);
 
 	m_Node = std::make_shared<engine::SceneGraphNode>();
 	sceneGraph->Attach(parent, m_Node);
@@ -215,7 +215,7 @@ void Terrain::CreateMesh(nvrhi::IDevice* device, nvrhi::ICommandList* commandLis
 uint Terrain::CreateSubtreeFor(
 	donut::engine::SceneGraph* sceneGraph,
 	std::vector<InstanceData>& instanceData,
-	TerrainTile* parent,
+	const TerrainTile* parent,
 	uint level,
 	float3 scale,
 	float3 offset

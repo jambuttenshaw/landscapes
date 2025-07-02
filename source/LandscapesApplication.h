@@ -11,9 +11,9 @@
 #include <donut/render/DeferredLightingPass.h>
 #include <donut/render/GBufferFillPass.h>
 
-#include "user_interface.h"
-#include "landscapes_scene.h"
-#include "passes/terrain_pass.h"
+#include "UserInterface.h"
+#include "LandscapesScene.h"
+#include "passes/TerrainPass.h"
 
 
 extern const char* g_WindowTitle;

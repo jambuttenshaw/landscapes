@@ -1,8 +1,10 @@
-#include "terrain_draw_strategy.h"
+#include "TerrainDrawStrategy.h"
 
-#include "donut/render/GeometryPasses.h"
+#include <donut/render/GeometryPasses.h>
 
-#include "../terrain/terrain_tree.h"
+#include <algorithm>
+
+#include "../terrain/Terrain.h"
 
 
 void TerrainDrawStrategy::PrepareForView(const std::shared_ptr<donut::engine::SceneGraphNode>& rootNode, const donut::engine::IView& view)

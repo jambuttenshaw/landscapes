@@ -5,7 +5,6 @@
 #include <donut/render/GeometryPasses.h>
 #include <donut/engine/CommonRenderPasses.h>
 #include <donut/engine/MaterialBindingCache.h>
-#include <donut/engine/ShaderFactory.h>
 
 
 class TerrainGBufferFillPass

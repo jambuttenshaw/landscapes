@@ -1,4 +1,4 @@
-#include "landscapes_application.h"
+#include "LandscapesApplication.h"
 
 #include <donut/engine/ShaderFactory.h>
 #include <nvrhi/utils.h>
@@ -8,7 +8,7 @@
 #include <donut/engine/CommonRenderPasses.h>
 
 #include "donut/engine/FramebufferFactory.h"
-#include "passes/terrain_draw_strategy.h"
+#include "passes/TerrainDrawStrategy.h"
 
 using namespace donut;
 using namespace donut::math;
@@ -43,7 +43,7 @@ bool LandscapesApplication::Init()
 
     m_CommandList = GetDevice()->createCommandList();
 
-    m_Camera.LookAt(float3{ 0.0f, 15.0f, -30.0f }, float3{ 0.0f });
+    m_Camera.LookAt(float3{ 0.0f, 15.0f, -50.0f }, float3{ 0.0f, 10.0f, 0.0f });
 
     m_CommandList->open();
 

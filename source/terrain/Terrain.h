@@ -98,7 +98,7 @@ private:
 	uint CreateSubtreeFor(
 		donut::engine::SceneGraph* sceneGraph,
 		std::vector<struct InstanceData>& instanceData,
-		TerrainTile* parent,
+		const TerrainTile* parent,
 		uint level,
 		float3 scale,
 		float3 translation

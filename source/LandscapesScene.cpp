@@ -1,4 +1,4 @@
-#include "landscapes_scene.h"
+#include "LandscapesScene.h"
 
 using namespace donut;
 using namespace donut::math;

@@ -1,6 +1,6 @@
-#include "user_interface.h"
+#include "UserInterface.h"
 
-#include "landscapes_application.h"
+#include "LandscapesApplication.h"
 
 
 UIRenderer::UIRenderer(donut::app::DeviceManager* deviceManager, std::shared_ptr<LandscapesApplication> app, UIData& ui)
