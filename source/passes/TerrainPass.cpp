@@ -11,11 +11,7 @@ using namespace donut;
 using namespace math;
 
 #include <donut/shaders/gbuffer_cb.h>
-
-struct TerrainPushConstants
-{
-	uint startInstanceLocation;
-};
+#include "TerrainShaders.h"
 
 
 TerrainGBufferFillPass::TerrainGBufferFillPass(nvrhi::IDevice* device)
@@ -32,6 +28,9 @@ void TerrainGBufferFillPass::Init(engine::ShaderFactory& shaderFactory)
 	m_GBufferCB = m_Device->createBuffer(nvrhi::utils::CreateVolatileConstantBufferDesc(
 		sizeof(GBufferFillConstants), "GBufferFillConstants", 16
 	));
+	m_TerrainCB = m_Device->createBuffer(nvrhi::utils::CreateVolatileConstantBufferDesc(
+		sizeof(TerrainConstants), "TerrainConstants", 16
+	));
 
 	CreateViewBindings(m_ViewBindingLayout, m_ViewBindingSet);
 	m_InputBindingLayout = CreateInputBindingLayout();
@@ -42,6 +41,7 @@ void TerrainGBufferFillPass::RenderTerrain(
 	const engine::IView* view,
 	const engine::IView* viewPrev,
 	nvrhi::IFramebuffer* framebuffer,
+	const Terrain* terrain,
 	bool wireframe,
 	donut::render::IDrawStrategy& drawStrategy
 )
@@ -51,6 +51,10 @@ void TerrainGBufferFillPass::RenderTerrain(
 	view->FillPlanarViewConstants(gbufferConstants.view);
 	viewPrev->FillPlanarViewConstants(gbufferConstants.viewPrev);
 	commandList->writeBuffer(m_GBufferCB, &gbufferConstants, sizeof(gbufferConstants));
+
+	TerrainConstants terrainConstants = {};
+	terrain->FillTerrainConstants(terrainConstants);
+	commandList->writeBuffer(m_TerrainCB, &terrainConstants, sizeof(terrainConstants));
 
 	// setup graphics state
 	nvrhi::GraphicsState state;
@@ -138,7 +142,7 @@ void TerrainGBufferFillPass::RenderTerrain(
 
 nvrhi::ShaderHandle TerrainGBufferFillPass::CreateVertexShader(engine::ShaderFactory& shaderFactory)
 {
-	char const* sourceFileName = "app/LandscapeShaders.hlsl";
+	char const* sourceFileName = "app/TerrainShaders.hlsl";
 
 	return shaderFactory.CreateAutoShader(sourceFileName, "gbuffer_vs",
 		DONUT_MAKE_PLATFORM_SHADER(g_landscape_shaders_gbuffer_vs), nullptr, nvrhi::ShaderType::Vertex);
@@ -146,7 +150,7 @@ nvrhi::ShaderHandle TerrainGBufferFillPass::CreateVertexShader(engine::ShaderFac
 
 nvrhi::ShaderHandle TerrainGBufferFillPass::CreatePixelShader(engine::ShaderFactory& shaderFactory)
 {
-	char const* sourceFileName = "app/LandscapeShaders.hlsl";
+	char const* sourceFileName = "app/TerrainShaders.hlsl";
 
 	return shaderFactory.CreateAutoShader(sourceFileName, "gbuffer_ps", 
 		DONUT_MAKE_PLATFORM_SHADER(g_landscape_shaders_gbuffer_ps), nullptr, nvrhi::ShaderType::Pixel);
@@ -172,13 +176,15 @@ void TerrainGBufferFillPass::CreateViewBindings(nvrhi::BindingLayoutHandle& layo
 		.setVisibility(nvrhi::ShaderType::Vertex | nvrhi::ShaderType::Pixel)
 		.setRegisterSpace(GBUFFER_SPACE_VIEW)
 		.setRegisterSpaceIsDescriptorSet(true)
-		.addItem(nvrhi::BindingLayoutItem::VolatileConstantBuffer(GBUFFER_BINDING_VIEW_CONSTANTS));
+		.addItem(nvrhi::BindingLayoutItem::VolatileConstantBuffer(GBUFFER_BINDING_VIEW_CONSTANTS))
+		.addItem(nvrhi::BindingLayoutItem::VolatileConstantBuffer(TERRAIN_BINDING_VIEW_CONSTANTS));
 
 	layout = m_Device->createBindingLayout(bindingLayoutDesc);
 
 	auto bindingSetDesc = nvrhi::BindingSetDesc()
 		.setTrackLiveness(true)
-		.addItem(nvrhi::BindingSetItem::ConstantBuffer(GBUFFER_BINDING_VIEW_CONSTANTS, m_GBufferCB));
+		.addItem(nvrhi::BindingSetItem::ConstantBuffer(GBUFFER_BINDING_VIEW_CONSTANTS, m_GBufferCB))
+		.addItem(nvrhi::BindingSetItem::ConstantBuffer(TERRAIN_BINDING_VIEW_CONSTANTS, m_TerrainCB));
 
 	set = m_Device->createBindingSet(bindingSetDesc, layout);
 }

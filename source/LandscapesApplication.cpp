@@ -167,6 +167,7 @@ void LandscapesApplication::Render(nvrhi::IFramebuffer* framebuffer)
             &m_View,
             &m_View,
             m_GBuffer->GBufferFramebuffer->GetFramebuffer(m_View),
+            terrain,
             m_UI.Wireframe, // TODO: This was quite nice before passing extra state through as a context
             drawStrategy
         );

@@ -7,6 +7,8 @@
 #include <donut/engine/MaterialBindingCache.h>
 
 
+class Terrain;
+
 class TerrainGBufferFillPass
 {
 public:
@@ -35,8 +37,9 @@ public:
         const donut::engine::IView* view,
         const donut::engine::IView* viewPrev,
         nvrhi::IFramebuffer* framebuffer,
+        const Terrain* terrain,
         bool wireframe,
-        donut::render::IDrawStrategy& drawStrategy // contains the terrain item to draw
+        donut::render::IDrawStrategy& drawStrategy
     );
 
 protected:
@@ -60,6 +63,7 @@ protected:
     nvrhi::BindingSetHandle m_ViewBindingSet;
 
     nvrhi::BufferHandle m_GBufferCB;
+    nvrhi::BufferHandle m_TerrainCB;
 
     // Sparse array of graphics pipelines
     nvrhi::GraphicsPipelineHandle m_Pipelines[PipelineKey::Count];

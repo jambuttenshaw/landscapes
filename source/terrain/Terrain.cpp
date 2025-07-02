@@ -5,6 +5,8 @@
 using namespace donut;
 using namespace donut::math;
 
+#include "TerrainShaders.h"
+
 
 static void CreateTerrainMeshData(
 	uint2 resolution,
@@ -260,6 +262,10 @@ uint Terrain::CreateSubtreeFor(
 	return tileIndex;
 }
 
+void Terrain::FillTerrainConstants(struct TerrainConstants& terrainConstants) const
+{
+	terrainConstants.Extents = m_HeightmapExtents;
+}
 
 void Terrain::GetAllTilesAtLevel(uint level, std::vector<TerrainTile*>& outTiles) const
 {

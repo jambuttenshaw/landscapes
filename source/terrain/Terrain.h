@@ -87,6 +87,7 @@ public:
 
 	void Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandList, donut::engine::SceneGraph* sceneGraph);
 
+	void FillTerrainConstants(struct TerrainConstants& terrainConstants) const;
 
 	inline uint GetNumLevels() const { return m_NumLevels; }
 	void GetAllTilesAtLevel(uint level, std::vector<TerrainTile*>& outTiles) const;

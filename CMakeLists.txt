@@ -38,7 +38,7 @@ macro(GroupSources curdir)
     endforeach()
 endmacro()
 
-file(GLOB_RECURSE shaders "shaders/*.hlsl")
+file(GLOB_RECURSE shaders "shaders/*.hlsl" "shaders/*.h")
 GroupSources("shaders")
 file(GLOB_RECURSE sources "source/*.cpp" "source/*.h")
 GroupSources("source")
@@ -56,6 +56,7 @@ donut_compile_shaders_all_platforms(
 )
 
 add_executable(${project} WIN32 ${sources})
+target_include_directories(${project} PUBLIC "shaders")
 target_link_libraries(${project} donut_app donut_engine donut_render)
 add_dependencies(${project} ${project}_shaders)
 set_target_properties(${project} PROPERTIES FOLDER ${folder})

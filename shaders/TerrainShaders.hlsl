@@ -6,12 +6,12 @@
 #include <donut/shaders/gbuffer_cb.h>
 #include <donut/shaders/binding_helpers.hlsli>
 
-DECLARE_CBUFFER(GBufferFillConstants, c_GBuffer, GBUFFER_BINDING_VIEW_CONSTANTS, GBUFFER_SPACE_VIEW);
+#include "TerrainShaders.h"
 
-struct TerrainPushConstants
-{
-    uint startInstanceLocation;
-};
+
+DECLARE_CBUFFER(GBufferFillConstants, c_GBuffer, GBUFFER_BINDING_VIEW_CONSTANTS, GBUFFER_SPACE_VIEW);
+DECLARE_CBUFFER(TerrainConstants, c_Terrain, TERRAIN_BINDING_VIEW_CONSTANTS, GBUFFER_SPACE_VIEW);
+
 DECLARE_PUSH_CONSTANTS(TerrainPushConstants, g_Push, GBUFFER_BINDING_PUSH_CONSTANTS, GBUFFER_SPACE_INPUT);
 
 
@@ -34,20 +34,20 @@ void gbuffer_vs(
     const InstanceData instance = t_Instances[i_instance];
 
     float3 pos = t_Positions[i_vertex];
-    // The texcoord is the normalized terrainPos
-    float2 texCoord = t_Positions[i_vertex].xz;
+    float3 worldPos = mul(instance.transform, float4(pos, 1.0)).xyz;
+
+    float2 texCoord = (worldPos.xz / c_Terrain.Extents) + 0.5f;
     float3 normal = float3(0, 1, 0);
     float4 tangent = float4(1, 0, 0, 0);
 
-    o_vtx.pos = mul(instance.transform, float4(pos, 1.0)).xyz;
+    o_vtx.pos = worldPos;
     o_vtx.texCoord = texCoord;
     o_vtx.normal = mul(instance.transform, float4(normal, 0)).xyz;
     o_vtx.tangent.xyz = mul(instance.transform, float4(tangent.xyz, 0)).xyz;
     o_vtx.tangent.w = tangent.w;
     o_vtx.prevPos = o_vtx.pos;
 
-    float4 worldPos = float4(o_vtx.pos, 1.0);
-    o_position = mul(worldPos, c_GBuffer.view.matWorldToClip);
+    o_position = mul(float4(worldPos, 1.0), c_GBuffer.view.matWorldToClip);
 }
 
 
@@ -63,7 +63,7 @@ void gbuffer_ps(
 #endif
 )
 {
-    float3 diffuseAlbedo = 1.0f;
+    float3 diffuseAlbedo = float3(i_vtx.texCoord, 0.0f);
     float opacity = 1.0f;
     float3 specularF0 = 0.0f;
     float occlusion = 0.0f;
