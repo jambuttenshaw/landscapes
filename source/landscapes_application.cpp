@@ -43,7 +43,7 @@ bool LandscapesApplication::Init()
 
     m_CommandList = GetDevice()->createCommandList();
 
-    m_Camera.LookAt(float3(0.f, 1.f, -2.f), float3(0.f, 0.f, 0));
+    m_Camera.LookAt(float3{ 0.0f, 15.0f, -30.0f }, float3{ 0.0f });
 
     m_CommandList->open();
 
@@ -156,8 +156,11 @@ void LandscapesApplication::Render(nvrhi::IFramebuffer* framebuffer)
     // Draw terrain
     if (m_UI.DrawTerrain)
     {
+        Terrain* terrain = m_Scene.GetTerrain().get();
+
         TerrainDrawStrategy drawStrategy;
-        drawStrategy.SetData(m_Scene.GetTerrain().get(), static_cast<uint>(m_UI.TerrainLOD));
+        uint lod = clamp(static_cast<uint>(m_UI.TerrainLOD), 0u, terrain->GetNumLevels() - 1);
+        drawStrategy.SetData(terrain, lod);
 
         m_TerrainGBufferPass->RenderTerrain(
             m_CommandList,

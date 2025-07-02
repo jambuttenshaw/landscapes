@@ -78,6 +78,9 @@ public:
 		uint2 HeightmapResolution = uint2{ 256, 256 };
 
 		uint2 TerrainResolution = uint2{ 16, 16 };
+
+		bool FitNumLevelsToHeightmapResolution = true;
+		uint NumLevelsOverride = 3;
 	};
 
 	Terrain(const CreateParams& params);
@@ -120,6 +123,8 @@ private:
 	std::vector<std::shared_ptr<TerrainTile>> m_Tiles;
 	// Num of levels in the tree
 	uint m_NumLevels;
+	// Total number of tiles in the quadtree
+	uint m_NumTiles;
 
 	// Scene graph objects
 	std::shared_ptr<donut::engine::SceneGraphNode> m_TerrainRootNode;

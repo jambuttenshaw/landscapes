@@ -8,11 +8,11 @@ class LandscapesApplication;
 // Data shared between the application layer and the user interface layer
 struct UIData
 {
-	bool Wireframe = false;
+	bool Wireframe = true;
 	bool BackFaceCulling = true;
 
 	bool DrawTerrain = true;
-	bool DrawObjects = true;
+	bool DrawObjects = false;
 
 	int TerrainLOD = 0;
 };

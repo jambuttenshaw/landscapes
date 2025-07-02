@@ -207,7 +207,9 @@ bool LandscapesScene::Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandL
     }
 
     {
-        m_Terrain = std::make_shared<Terrain>(Terrain::CreateParams{});
+        Terrain::CreateParams createParams{};
+
+        m_Terrain = std::make_shared<Terrain>(createParams);
         m_Terrain->Init(device, commandList, m_SceneGraph.get());
     }
 

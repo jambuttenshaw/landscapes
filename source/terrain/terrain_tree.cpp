@@ -81,37 +81,48 @@ Terrain::Terrain(const CreateParams& params)
 	, m_TerrainResolution(params.TerrainResolution)
 	, m_NumLevels(-1)
 {
-	
+	// Calculate the maximum number of tiles needed to express the entire terrain at the highest level of detail
+	m_NumTiles = 0;
+	m_NumLevels = 0;
+
+	if (params.FitNumLevelsToHeightmapResolution)
+	{
+		uint tilesInLevel = 1;
+		uint verticesAlongEdge = max(m_TerrainResolution.x, m_TerrainResolution.y);
+		while (all(verticesAlongEdge <= m_HeightmapResolution))
+		{
+			m_NumTiles += tilesInLevel;
+			m_NumLevels++;
+
+			tilesInLevel *= 4;
+			verticesAlongEdge *= 2;
+		}
+	}
+	else
+	{
+		uint tilesInLevel = 1;
+		m_NumLevels = params.NumLevelsOverride;
+		for (uint i = 0; i < m_NumLevels; i++)
+		{
+			m_NumTiles += tilesInLevel;
+			tilesInLevel *= 4;
+		}
+	}
 }
 
 void Terrain::Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandList, engine::SceneGraph* sceneGraph)
 {
-	// Calculate the maximum number of tiles needed to express the entire terrain at the highest level of detail
-	uint tileCount = 0;
-	m_NumLevels = 0;
-
-	uint tilesInLevel = 1;
-	uint verticesAlongEdge = max(m_TerrainResolution.x, m_TerrainResolution.y);
-	while (all(verticesAlongEdge <= m_HeightmapResolution))
-	{
-		tileCount += tilesInLevel;
-		m_NumLevels++;
-
-		tilesInLevel *= 4;
-		verticesAlongEdge *= 2;
-	}
-
 	// Create mesh
-	CreateMesh(device, commandList, tileCount);
+	CreateMesh(device, commandList, m_NumTiles);
 
 	// Create root node in scene graph for terrain tile hierarchy to attach to
 	m_TerrainRootNode = std::make_shared<engine::SceneGraphNode>();
 	sceneGraph->Attach(sceneGraph->GetRootNode(), m_TerrainRootNode);
 
-	std::vector<InstanceData> tileInstanceData;
+	m_Tiles.reserve(m_NumTiles);
 
-	m_Tiles.reserve(tileCount);
-	tileInstanceData.reserve(tileCount);
+	std::vector<InstanceData> tileInstanceData;
+	tileInstanceData.reserve(m_NumTiles);
 
 	{
 		// Recursively populate the tree
