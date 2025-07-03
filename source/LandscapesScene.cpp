@@ -1,5 +1,7 @@
 #include "LandscapesScene.h"
 
+#include "donut/app/ApplicationBase.h"
+
 using namespace donut;
 using namespace donut::math;
 
@@ -208,9 +210,13 @@ bool LandscapesScene::Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandL
 
     {
         Terrain::CreateParams createParams{};
+        createParams.HeightmapTexturePath = app::GetDirectoryWithExecutable().parent_path() / "media/test_heightmap.png";
 
-        m_Terrain = std::make_shared<Terrain>(createParams);
-        m_Terrain->Init(device, commandList, m_SceneGraph.get());
+        m_Terrain = std::make_shared<Terrain>();
+        if (!m_Terrain->Init(device, commandList, textureCache, m_SceneGraph.get(), createParams))
+        {
+	        return false;
+        }
     }
 
     auto cubeNode = std::make_shared<engine::SceneGraphNode>();

@@ -4,6 +4,8 @@
 #include <donut/core/math/math.h>
 #include <donut/engine/SceneGraph.h>
 
+#include "donut/engine/TextureCache.h"
+
 using namespace donut::math;
 
 
@@ -68,7 +70,6 @@ private:
 };
 
 
-// TODO: This will be / contain a scene graph node
 class Terrain
 {
 public:
@@ -81,13 +82,21 @@ public:
 
 		bool FitNumLevelsToHeightmapResolution = true;
 		uint NumLevelsOverride = 3;
+
+		std::filesystem::path HeightmapTexturePath;
 	};
 
-	Terrain(const CreateParams& params);
+	bool Init(
+		nvrhi::IDevice* device,
+		nvrhi::ICommandList* commandList,
+		donut::engine::TextureCache* textureCache,
+		donut::engine::SceneGraph* sceneGraph,
+		const CreateParams& params
+	);
 
-	void Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandList, donut::engine::SceneGraph* sceneGraph);
-
+	// Get data for rendering
 	void FillTerrainConstants(struct TerrainConstants& terrainConstants) const;
+	nvrhi::TextureHandle GetHeightmapTexture() const { return m_HeightmapTexture; }
 
 	inline uint GetNumLevels() const { return m_NumLevels; }
 	void GetAllTilesAtLevel(uint level, std::vector<TerrainTile*>& outTiles) const;
@@ -120,12 +129,13 @@ private:
 	std::shared_ptr<donut::engine::BufferGroup> m_Buffers;
 	std::shared_ptr<donut::engine::MeshInfo> m_TerrainMeshInfo;
 
+	// Textures
+	nvrhi::TextureHandle m_HeightmapTexture;
+
 	// Terrain tile instances
 	std::vector<std::shared_ptr<TerrainTile>> m_Tiles;
 	// Num of levels in the tree
-	uint m_NumLevels;
-	// Total number of tiles in the quadtree
-	uint m_NumTiles;
+	uint m_NumLevels = -1;
 
 	// Scene graph objects
 	std::shared_ptr<donut::engine::SceneGraphNode> m_TerrainRootNode;

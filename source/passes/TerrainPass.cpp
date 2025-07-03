@@ -34,6 +34,27 @@ void TerrainGBufferFillPass::Init(engine::ShaderFactory& shaderFactory)
 
 	CreateViewBindings(m_ViewBindingLayout, m_ViewBindingSet);
 	m_InputBindingLayout = CreateInputBindingLayout();
+	m_TerrainBindingLayout = CreateTerrainBindingLayout();
+}
+
+template <typename Key>
+static nvrhi::BindingSetHandle FindOrCreateBindingSet(
+	Key key,
+	std::unordered_map<Key, nvrhi::BindingSetHandle>& bindingSets,
+	std::function<nvrhi::BindingSetHandle(Key)> createFunc)
+{
+	nvrhi::BindingSetHandle inputBindingSet;
+	auto it = bindingSets.find(key);
+	if (it == bindingSets.end())
+	{
+		inputBindingSet = createFunc(key);
+		bindingSets[key] = inputBindingSet;
+	}
+	else
+	{
+		inputBindingSet = it->second;
+	}
+	return inputBindingSet;
 }
 
 void TerrainGBufferFillPass::RenderTerrain(
@@ -98,26 +119,15 @@ void TerrainGBufferFillPass::RenderTerrain(
 		// No index buffer is used for terrain
 		state.indexBuffer = { drawItem->buffers->indexBuffer, nvrhi::Format::R32_UINT, 0 };
 
-		nvrhi::BindingSetHandle inputBindingSet;
-		auto it = m_InputBindingSets.find(drawItem->buffers);
-		if (it == m_InputBindingSets.end())
-		{
-			auto bindingSetDesc = nvrhi::BindingSetDesc()
-				.addItem(nvrhi::BindingSetItem::StructuredBuffer_SRV(GBUFFER_BINDING_INSTANCE_BUFFER, drawItem->buffers->instanceBuffer))
-				.addItem(nvrhi::BindingSetItem::StructuredBuffer_SRV(GBUFFER_BINDING_VERTEX_BUFFER, drawItem->buffers->vertexBuffer))
-				.addItem(nvrhi::BindingSetItem::PushConstants(GBUFFER_BINDING_PUSH_CONSTANTS, sizeof(TerrainPushConstants)));
-
-			inputBindingSet = m_Device->createBindingSet(bindingSetDesc, m_InputBindingLayout);
-			m_InputBindingSets[drawItem->buffers] = inputBindingSet;
-		}
-		else
-		{
-			inputBindingSet = it->second;
-		}
+		nvrhi::BindingSetHandle inputBindingSet = FindOrCreateBindingSet<const engine::BufferGroup*>(drawItem->buffers, m_InputBindingSets,
+			[this](const engine::BufferGroup* buffers){ return CreateInputBindingSet(buffers); });
+		nvrhi::BindingSetHandle terrainBindingSet = FindOrCreateBindingSet<const Terrain*>(terrain, m_TerrainBindingSets,
+			[this](const Terrain* terrain) { return CreateTerrainBindingSet(terrain); });
 
 		state.bindings = {
 			m_ViewBindingSet,
-			inputBindingSet
+			inputBindingSet,
+			terrainBindingSet
 		};
 
 		commandList->setGraphicsState(state);
@@ -170,21 +180,31 @@ nvrhi::BindingLayoutHandle TerrainGBufferFillPass::CreateInputBindingLayout()
 	return m_Device->createBindingLayout(bindingLayoutDesc);
 }
 
+nvrhi::BindingLayoutHandle TerrainGBufferFillPass::CreateTerrainBindingLayout()
+{
+	auto bindingLayoutDesc = nvrhi::BindingLayoutDesc()
+		.setVisibility(nvrhi::ShaderType::Vertex | nvrhi::ShaderType::Pixel)
+		.setRegisterSpace(GBUFFER_SPACE_TERRAIN)
+		.setRegisterSpaceIsDescriptorSet(true)
+		.addItem(nvrhi::BindingLayoutItem::VolatileConstantBuffer(GBUFFER_BINDING_TERRAIN_CONSTANTS))
+		.addItem(nvrhi::BindingLayoutItem::Texture_SRV(GBUFFER_BINDING_TERRAIN_HEIGHTMAP_TEXTURE));
+
+	return m_Device->createBindingLayout(bindingLayoutDesc);
+}
+
 void TerrainGBufferFillPass::CreateViewBindings(nvrhi::BindingLayoutHandle& layout, nvrhi::BindingSetHandle& set)
 {
 	auto bindingLayoutDesc = nvrhi::BindingLayoutDesc()
 		.setVisibility(nvrhi::ShaderType::Vertex | nvrhi::ShaderType::Pixel)
 		.setRegisterSpace(GBUFFER_SPACE_VIEW)
 		.setRegisterSpaceIsDescriptorSet(true)
-		.addItem(nvrhi::BindingLayoutItem::VolatileConstantBuffer(GBUFFER_BINDING_VIEW_CONSTANTS))
-		.addItem(nvrhi::BindingLayoutItem::VolatileConstantBuffer(TERRAIN_BINDING_VIEW_CONSTANTS));
+		.addItem(nvrhi::BindingLayoutItem::VolatileConstantBuffer(GBUFFER_BINDING_VIEW_CONSTANTS));
 
 	layout = m_Device->createBindingLayout(bindingLayoutDesc);
 
 	auto bindingSetDesc = nvrhi::BindingSetDesc()
 		.setTrackLiveness(true)
-		.addItem(nvrhi::BindingSetItem::ConstantBuffer(GBUFFER_BINDING_VIEW_CONSTANTS, m_GBufferCB))
-		.addItem(nvrhi::BindingSetItem::ConstantBuffer(TERRAIN_BINDING_VIEW_CONSTANTS, m_TerrainCB));
+		.addItem(nvrhi::BindingSetItem::ConstantBuffer(GBUFFER_BINDING_VIEW_CONSTANTS, m_GBufferCB));
 
 	set = m_Device->createBindingSet(bindingSetDesc, layout);
 }
@@ -197,7 +217,8 @@ nvrhi::GraphicsPipelineHandle TerrainGBufferFillPass::CreateGraphicsPipeline(Pip
 	pipelineDesc.PS = m_PixelShader;
 	pipelineDesc.bindingLayouts = {
 		m_ViewBindingLayout,
-		m_InputBindingLayout
+		m_InputBindingLayout,
+		m_TerrainBindingLayout
 	};
 
 	pipelineDesc.primType = nvrhi::PrimitiveType::TriangleList;
@@ -214,4 +235,24 @@ nvrhi::GraphicsPipelineHandle TerrainGBufferFillPass::CreateGraphicsPipeline(Pip
 			: nvrhi::ComparisonFunc::LessOrEqual);
 
 	return m_Device->createGraphicsPipeline(pipelineDesc, sampleFramebuffer);
+}
+
+
+nvrhi::BindingSetHandle TerrainGBufferFillPass::CreateInputBindingSet(const donut::engine::BufferGroup* buffers)
+{
+	auto bindingSetDesc = nvrhi::BindingSetDesc()
+		.addItem(nvrhi::BindingSetItem::StructuredBuffer_SRV(GBUFFER_BINDING_INSTANCE_BUFFER, buffers->instanceBuffer))
+		.addItem(nvrhi::BindingSetItem::StructuredBuffer_SRV(GBUFFER_BINDING_VERTEX_BUFFER, buffers->vertexBuffer))
+		.addItem(nvrhi::BindingSetItem::PushConstants(GBUFFER_BINDING_PUSH_CONSTANTS, sizeof(TerrainPushConstants)));
+
+	return m_Device->createBindingSet(bindingSetDesc, m_InputBindingLayout);
+}
+
+nvrhi::BindingSetHandle TerrainGBufferFillPass::CreateTerrainBindingSet(const Terrain* terrain)
+{
+	auto bindingSetDesc = nvrhi::BindingSetDesc()
+		.addItem(nvrhi::BindingSetItem::ConstantBuffer(GBUFFER_BINDING_TERRAIN_CONSTANTS, m_TerrainCB))
+		.addItem(nvrhi::BindingSetItem::Texture_SRV(GBUFFER_BINDING_TERRAIN_HEIGHTMAP_TEXTURE, terrain->GetHeightmapTexture()));
+
+	return m_Device->createBindingSet(bindingSetDesc, m_TerrainBindingLayout);
 }

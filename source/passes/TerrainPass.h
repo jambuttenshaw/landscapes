@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <mutex>
 
 #include <donut/render/GeometryPasses.h>
@@ -48,9 +49,13 @@ protected:
     virtual nvrhi::ShaderHandle CreatePixelShader(donut::engine::ShaderFactory& shaderFactory);
 
     virtual nvrhi::BindingLayoutHandle CreateInputBindingLayout();
+    virtual nvrhi::BindingLayoutHandle CreateTerrainBindingLayout();
     virtual void CreateViewBindings(nvrhi::BindingLayoutHandle& layout, nvrhi::BindingSetHandle& set);
 
 	virtual nvrhi::GraphicsPipelineHandle CreateGraphicsPipeline(PipelineKey key, nvrhi::IFramebuffer* sampleFramebuffer);
+
+    virtual nvrhi::BindingSetHandle CreateInputBindingSet(const donut::engine::BufferGroup* buffers);
+    virtual nvrhi::BindingSetHandle CreateTerrainBindingSet(const Terrain* terrain);
 
 protected:
     nvrhi::DeviceHandle m_Device;
@@ -59,6 +64,8 @@ protected:
     nvrhi::ShaderHandle m_PixelShader;
 
     nvrhi::BindingLayoutHandle m_InputBindingLayout;
+    nvrhi::BindingLayoutHandle m_TerrainBindingLayout;
+
     nvrhi::BindingLayoutHandle m_ViewBindingLayout;
     nvrhi::BindingSetHandle m_ViewBindingSet;
 
@@ -70,4 +77,5 @@ protected:
     std::mutex m_Mutex;
 
     std::unordered_map<const donut::engine::BufferGroup*, nvrhi::BindingSetHandle> m_InputBindingSets;
+    std::unordered_map<const Terrain*, nvrhi::BindingSetHandle> m_TerrainBindingSets;
 };

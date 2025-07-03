@@ -76,16 +76,27 @@ TerrainTile::TerrainTile(
 }
 
 
-Terrain::Terrain(const CreateParams& params)
-	: m_HeightmapExtents(params.HeightmapExtents)
-	, m_HeightmapResolution(params.HeightmapResolution)
-	, m_HeightmapMetersPerPixel(params.HeightmapExtents / static_cast<float2>(m_HeightmapResolution))
-	, m_TerrainResolution(params.TerrainResolution)
-	, m_NumLevels(-1)
+bool Terrain::Init(
+	nvrhi::IDevice* device, 
+	nvrhi::ICommandList* commandList, 
+	engine::TextureCache* textureCache, 
+	engine::SceneGraph* sceneGraph,
+	const CreateParams& params)
 {
-	// Calculate the maximum number of tiles needed to express the entire terrain at the highest level of detail
-	m_NumTiles = 0;
+	if (!(device && commandList && textureCache && sceneGraph))
+	{
+		log::error("Invalid arguments");
+		return false;
+	}
+
+	m_HeightmapExtents = params.HeightmapExtents;
+	m_HeightmapResolution = params.HeightmapResolution;
+	m_HeightmapMetersPerPixel = params.HeightmapExtents / static_cast<float2>(m_HeightmapResolution);
+	m_TerrainResolution = params.TerrainResolution;
+
+	// Calculate the size of the tree
 	m_NumLevels = 0;
+	uint numTiles = 0;
 
 	if (params.FitNumLevelsToHeightmapResolution)
 	{
@@ -93,7 +104,7 @@ Terrain::Terrain(const CreateParams& params)
 		uint verticesAlongEdge = max(m_TerrainResolution.x, m_TerrainResolution.y);
 		while (all(verticesAlongEdge <= m_HeightmapResolution))
 		{
-			m_NumTiles += tilesInLevel;
+			numTiles += tilesInLevel;
 			m_NumLevels++;
 
 			tilesInLevel *= 4;
@@ -106,25 +117,22 @@ Terrain::Terrain(const CreateParams& params)
 		m_NumLevels = params.NumLevelsOverride;
 		for (uint i = 0; i < m_NumLevels; i++)
 		{
-			m_NumTiles += tilesInLevel;
+			numTiles += tilesInLevel;
 			tilesInLevel *= 4;
 		}
 	}
-}
 
-void Terrain::Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandList, engine::SceneGraph* sceneGraph)
-{
 	// Create mesh
-	CreateMesh(device, commandList, m_NumTiles);
+	CreateMesh(device, commandList, numTiles);
 
 	// Create root node in scene graph for terrain tile hierarchy to attach to
 	m_TerrainRootNode = std::make_shared<engine::SceneGraphNode>();
 	sceneGraph->Attach(sceneGraph->GetRootNode(), m_TerrainRootNode);
 
-	m_Tiles.reserve(m_NumTiles);
+	m_Tiles.reserve(numTiles);
 
 	std::vector<InstanceData> tileInstanceData;
-	tileInstanceData.reserve(m_NumTiles);
+	tileInstanceData.reserve(numTiles);
 
 	{
 		// Recursively populate the tree
@@ -139,6 +147,21 @@ void Terrain::Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandList, eng
 		commandList->writeBuffer(m_Buffers->instanceBuffer, tileInstanceData.data(), tileInstanceData.size() * sizeof(InstanceData));
 		commandList->setPermanentBufferState(m_Buffers->instanceBuffer, nvrhi::ResourceStates::ShaderResource);
 	}
+
+	// Load textures for the terrain
+	if (!params.HeightmapTexturePath.empty())
+	{
+		std::shared_ptr<engine::LoadedTexture> heightmapTexture = textureCache->LoadTextureFromFile(params.HeightmapTexturePath, true, nullptr, commandList);
+		m_HeightmapTexture = heightmapTexture->texture;
+
+		if (!heightmapTexture->texture)
+		{
+			log::error("Couldn't load the texture");
+			return false;
+		}
+	}
+
+	return true;
 }
 
 void Terrain::CreateMesh(nvrhi::IDevice* device, nvrhi::ICommandList* commandList, uint tileCount)
