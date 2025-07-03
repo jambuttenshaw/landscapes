@@ -14,10 +14,12 @@ using namespace math;
 #include "TerrainShaders.h"
 
 
-TerrainGBufferFillPass::TerrainGBufferFillPass(nvrhi::IDevice* device)
+TerrainGBufferFillPass::TerrainGBufferFillPass(nvrhi::IDevice* device, std::shared_ptr<engine::CommonRenderPasses> commonPasses)
 	: m_Device(device)
+	, m_CommonPasses(std::move(commonPasses))
 {
 	assert(m_Device->getGraphicsAPI() != nvrhi::GraphicsAPI::D3D11);
+	assert(m_CommonPasses);
 }
 
 void TerrainGBufferFillPass::Init(engine::ShaderFactory& shaderFactory)
@@ -198,13 +200,15 @@ void TerrainGBufferFillPass::CreateViewBindings(nvrhi::BindingLayoutHandle& layo
 		.setVisibility(nvrhi::ShaderType::Vertex | nvrhi::ShaderType::Pixel)
 		.setRegisterSpace(GBUFFER_SPACE_VIEW)
 		.setRegisterSpaceIsDescriptorSet(true)
-		.addItem(nvrhi::BindingLayoutItem::VolatileConstantBuffer(GBUFFER_BINDING_VIEW_CONSTANTS));
+		.addItem(nvrhi::BindingLayoutItem::VolatileConstantBuffer(GBUFFER_BINDING_VIEW_CONSTANTS))
+		.addItem(nvrhi::BindingLayoutItem::Sampler(GBUFFER_BINDING_TERRAIN_HEIGHTMAP_SAMPLER));
 
 	layout = m_Device->createBindingLayout(bindingLayoutDesc);
 
 	auto bindingSetDesc = nvrhi::BindingSetDesc()
 		.setTrackLiveness(true)
-		.addItem(nvrhi::BindingSetItem::ConstantBuffer(GBUFFER_BINDING_VIEW_CONSTANTS, m_GBufferCB));
+		.addItem(nvrhi::BindingSetItem::ConstantBuffer(GBUFFER_BINDING_VIEW_CONSTANTS, m_GBufferCB))
+		.addItem(nvrhi::BindingSetItem::Sampler(GBUFFER_BINDING_TERRAIN_HEIGHTMAP_SAMPLER, m_CommonPasses->m_LinearClampSampler));
 
 	set = m_Device->createBindingSet(bindingSetDesc, layout);
 }

@@ -19,6 +19,7 @@ StructuredBuffer<float3> t_Positions : REGISTER_SRV(GBUFFER_BINDING_VERTEX_BUFFE
 DECLARE_CBUFFER(TerrainConstants, c_Terrain, GBUFFER_BINDING_TERRAIN_CONSTANTS, GBUFFER_SPACE_TERRAIN);
 Texture2D<float> t_HeightmapTexture : REGISTER_SRV(GBUFFER_BINDING_TERRAIN_HEIGHTMAP_TEXTURE, GBUFFER_SPACE_TERRAIN);
 
+SamplerState s_HeightmapSampler : REGISTER_SAMPLER(GBUFFER_BINDING_TERRAIN_HEIGHTMAP_SAMPLER, GBUFFER_SPACE_VIEW);
 
 void gbuffer_vs(
 	in uint i_vertex : SV_VertexID,
@@ -40,6 +41,9 @@ void gbuffer_vs(
     float2 texCoord = (worldPos.xz / c_Terrain.Extents) + 0.5f;
     float3 normal = float3(0, 1, 0);
     float4 tangent = float4(1, 0, 0, 0);
+
+    float height = t_HeightmapTexture.SampleLevel(s_HeightmapSampler, texCoord, 0);
+    worldPos.y += height * 155.23f;
 
     o_vtx.pos = worldPos;
     o_vtx.texCoord = texCoord;

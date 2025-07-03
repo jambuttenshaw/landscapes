@@ -28,7 +28,7 @@ public:
     };
 
 public:
-    TerrainGBufferFillPass(nvrhi::IDevice* device);
+    TerrainGBufferFillPass(nvrhi::IDevice* device, std::shared_ptr<donut::engine::CommonRenderPasses> commonPasses);
     virtual ~TerrainGBufferFillPass() = default;
 
     virtual void Init(donut::engine::ShaderFactory& shaderFactory);
@@ -59,6 +59,7 @@ protected:
 
 protected:
     nvrhi::DeviceHandle m_Device;
+    std::shared_ptr<donut::engine::CommonRenderPasses> m_CommonPasses;
 
     nvrhi::ShaderHandle m_VertexShader;
     nvrhi::ShaderHandle m_PixelShader;

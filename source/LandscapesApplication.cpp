@@ -43,7 +43,7 @@ bool LandscapesApplication::Init()
 
     m_CommandList = GetDevice()->createCommandList();
 
-    m_Camera.LookAt(float3{ 0.0f, 15.0f, -50.0f }, float3{ 0.0f, 10.0f, 0.0f });
+    m_Camera.LookTo(float3{ 0.0f, 150.0f, 0.0f }, float3{ 0.0f, 0.0f, 1.0f });
 
     m_CommandList->open();
 
@@ -78,7 +78,7 @@ void LandscapesApplication::CreateGBufferPasses()
     m_GBufferPass = std::make_unique<render::GBufferFillPass>(GetDevice(), m_CommonPasses);
     m_GBufferPass->Init(*m_ShaderFactory, GBufferParams);
 
-    m_TerrainGBufferPass = std::make_unique<TerrainGBufferFillPass>(GetDevice());
+    m_TerrainGBufferPass = std::make_unique<TerrainGBufferFillPass>(GetDevice(), m_CommonPasses);
     m_TerrainGBufferPass->Init(*m_ShaderFactory);
 }
 

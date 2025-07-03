@@ -210,6 +210,9 @@ bool LandscapesScene::Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandL
 
     {
         Terrain::CreateParams createParams{};
+        createParams.HeightmapResolution = { 1024, 1024 };
+        createParams.HeightmapExtents = { 262.28f, 262.28f };
+        createParams.TerrainResolution = { 64, 64 };
         createParams.HeightmapTexturePath = app::GetDirectoryWithExecutable().parent_path() / "media/test_heightmap.png";
 
         m_Terrain = std::make_shared<Terrain>();
