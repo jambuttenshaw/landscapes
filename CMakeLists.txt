@@ -38,7 +38,7 @@ macro(GroupSources curdir)
     endforeach()
 endmacro()
 
-file(GLOB_RECURSE shaders "shaders/*.hlsl" "shaders/*.h")
+file(GLOB_RECURSE shaders "shaders/*.hlsl" "shaders/*.hlsli" "shaders/*.h")
 GroupSources("shaders")
 file(GLOB_RECURSE sources "source/*.cpp" "source/*.h")
 GroupSources("source")

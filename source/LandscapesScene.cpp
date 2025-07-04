@@ -212,7 +212,8 @@ bool LandscapesScene::Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandL
         Terrain::CreateParams createParams{};
         createParams.HeightmapResolution = { 1024, 1024 };
         createParams.HeightmapExtents = { 262.28f, 262.28f };
-        createParams.TerrainResolution = { 64, 64 };
+        createParams.HeightmapHeightScale = 155.23f;
+        createParams.TerrainResolution = { 32, 32 };
         createParams.HeightmapTexturePath = app::GetDirectoryWithExecutable().parent_path() / "media/test_heightmap.png";
 
         m_Terrain = std::make_shared<Terrain>();
@@ -231,7 +232,7 @@ bool LandscapesScene::Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandL
     auto sunLight = std::make_shared<engine::DirectionalLight>();
     m_SceneGraph->AttachLeafNode(rootNode, sunLight);
 
-    sunLight->SetDirection(double3(0.1, -1.0, 0.2));
+    sunLight->SetDirection(double3(0.0, -1.0, 0.0));
     sunLight->angularSize = 0.53f;
     sunLight->irradiance = 1.f;
     sunLight->SetName("Sun");

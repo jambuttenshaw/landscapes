@@ -91,6 +91,7 @@ bool Terrain::Init(
 
 	m_HeightmapExtents = params.HeightmapExtents;
 	m_HeightmapResolution = params.HeightmapResolution;
+	m_HeightmapHeightScale = params.HeightmapHeightScale;
 	m_HeightmapMetersPerPixel = params.HeightmapExtents / static_cast<float2>(m_HeightmapResolution);
 	m_TerrainResolution = params.TerrainResolution;
 
@@ -288,6 +289,8 @@ uint Terrain::CreateSubtreeFor(
 void Terrain::FillTerrainConstants(struct TerrainConstants& terrainConstants) const
 {
 	terrainConstants.Extents = m_HeightmapExtents;
+	terrainConstants.HeightScale = m_HeightmapHeightScale;
+	terrainConstants.HeightmapResolution = static_cast<float2>(m_HeightmapResolution);
 }
 
 void Terrain::GetAllTilesAtLevel(uint level, std::vector<TerrainTile*>& outTiles) const

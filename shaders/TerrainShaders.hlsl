@@ -21,6 +21,9 @@ Texture2D<float> t_HeightmapTexture : REGISTER_SRV(GBUFFER_BINDING_TERRAIN_HEIGH
 
 SamplerState s_HeightmapSampler : REGISTER_SAMPLER(GBUFFER_BINDING_TERRAIN_HEIGHTMAP_SAMPLER, GBUFFER_SPACE_VIEW);
 
+#include "TerrainHelpers.hlsli"
+
+
 void gbuffer_vs(
 	in uint i_vertex : SV_VertexID,
 	in uint i_instance : SV_InstanceID,
@@ -37,19 +40,42 @@ void gbuffer_vs(
 
     float3 pos = t_Positions[i_vertex];
     float3 worldPos = mul(instance.transform, float4(pos, 1.0)).xyz;
-
     float2 texCoord = (worldPos.xz / c_Terrain.Extents) + 0.5f;
-    float3 normal = float3(0, 1, 0);
-    float4 tangent = float4(1, 0, 0, 0);
 
-    float height = t_HeightmapTexture.SampleLevel(s_HeightmapSampler, texCoord, 0);
-    worldPos.y += height * 155.23f;
+    worldPos.y += GetTerrainHeight(texCoord);
+
+    const float2 worldCellSpace = float2(1.0f, 1.0f) / c_Terrain.Extents;
+    const float2 texelCellSpace = float2(1.0f, 1.0f) / c_Terrain.HeightmapResolution;
+
+    // calculate normal from displacement map
+
+    // sample the 4 adjacent texels
+    float2 leftTex = texCoord - float2(texelCellSpace.x, 0.0f);
+    float2 rightTex = texCoord + float2(texelCellSpace.x, 0.0f);
+    float2 topTex = texCoord - float2(0.0f, texelCellSpace.y);
+    float2 bottomTex = texCoord + float2(0.0f, texelCellSpace.y);
+
+    float leftHeight = GetTerrainHeight(leftTex);
+    float rightHeight = GetTerrainHeight(rightTex);
+    float topHeight = GetTerrainHeight(topTex);
+    float bottomHeight = GetTerrainHeight(bottomTex);
+
+    // calculate tangent and bitangent to calculate normal
+    float3 tangent = normalize(float3(2.0f * worldCellSpace.x, rightHeight - leftHeight, 0.0f));
+    float3 bitangent = normalize(float3(0.0f, bottomHeight - topHeight, 2.0f * worldCellSpace.y));
+    float3 normal = normalize(cross(tangent, bitangent));
+    /*
+	*/
+    //float3 normal = float3(0, 1, 0);
+    //float3 tangent = float3(1, 0, 0);
 
     o_vtx.pos = worldPos;
     o_vtx.texCoord = texCoord;
-    o_vtx.normal = mul(instance.transform, float4(normal, 0)).xyz;
-    o_vtx.tangent.xyz = mul(instance.transform, float4(tangent.xyz, 0)).xyz;
-    o_vtx.tangent.w = tangent.w;
+    //o_vtx.normal = mul(instance.transform, float4(normal, 0)).xyz;
+    //o_vtx.tangent.xyz = mul(instance.transform, float4(tangent, 0)).xyz;
+    o_vtx.normal = normal;
+    o_vtx.tangent.xyz = tangent;
+    o_vtx.tangent.w = 0.0f;
     o_vtx.prevPos = o_vtx.pos;
 
     o_position = mul(float4(worldPos, 1.0), c_GBuffer.view.matWorldToClip);
@@ -73,14 +99,17 @@ void gbuffer_ps(
     float3 specularF0 = 0.0f;
     float occlusion = 0.0f;
     float3 shadingNormal = i_vtx.normal;
+    //float3 shadingNormal = float3(0.0f, 1.0f, 0.0f);
     float roughness = 1.0f;
     float3 emissiveColor = 0.0f;
 
-    o_channel0.xyz = diffuseAlbedo;
+    o_channel0.xyz = shadingNormal * 0.5f + 0.5f;
+    //o_channel0.xyz = diffuseAlbedo;
     o_channel0.w = opacity;
     o_channel1.xyz = specularF0;
     o_channel1.w = occlusion;
-    o_channel2.xyz = shadingNormal;
+    //o_channel2.xyz = shadingNormal;
+    o_channel2.xyz = float3(0.0f, 1.0f, 0.0f);
     o_channel2.w = roughness;
     o_channel3.xyz = emissiveColor;
     o_channel3.w = 0;

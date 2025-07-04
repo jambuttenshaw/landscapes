@@ -77,6 +77,7 @@ public:
 	{
 		float2 HeightmapExtents = float2{ 512, 512 };
 		uint2 HeightmapResolution = uint2{ 256, 256 };
+		float HeightmapHeightScale = 100.0f;
 
 		uint2 TerrainResolution = uint2{ 16, 16 };
 
@@ -119,6 +120,7 @@ private:
 private:
 	// The width and height of the entire terrain
 	float2 m_HeightmapExtents;
+	float m_HeightmapHeightScale = 0.;
 	// The number of pixels in the heightmap
 	uint2 m_HeightmapResolution;
 	// The number of meters each pixel in the heightmap corresponds to
