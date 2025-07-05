@@ -6,10 +6,12 @@
 #include "terrain/Terrain.h"
 
 
+struct UIData;
+
 class LandscapesScene
 {
 public:
-    LandscapesScene();
+    LandscapesScene(UIData& ui);
 	bool Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandList, donut::engine::TextureCache* textureCache);
 
     inline const std::shared_ptr<Terrain>& GetTerrain() const { return m_Terrain; }
@@ -18,6 +20,9 @@ public:
     inline const std::shared_ptr<donut::engine::SceneGraph>& GetSceneGraph() const { return m_SceneGraph; }
 
     inline const std::vector<std::shared_ptr<donut::engine::Light>>& GetLights() const { return m_SceneGraph->GetLights(); }
+
+
+    void Animate(float deltaTime);
 
 private:
 
@@ -31,6 +36,8 @@ private:
     );
 
 private:
+    UIData& m_UI;
+
 	std::shared_ptr<donut::engine::SceneGraph> m_SceneGraph;
 
 	std::shared_ptr<donut::engine::Material> m_GreyMaterial;
@@ -41,4 +48,6 @@ private:
 	std::shared_ptr<donut::engine::MeshInstance> m_CubeMeshInstance;
 
     std::shared_ptr<Terrain> m_Terrain;
+
+    std::shared_ptr<donut::engine::DirectionalLight> m_SunLight;
 };

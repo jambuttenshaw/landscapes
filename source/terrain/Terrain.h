@@ -95,6 +95,9 @@ public:
 		const CreateParams& params
 	);
 
+	inline float GetHeightScale() const { return m_HeightmapHeightScale; }
+	inline void SetHeightScale(float scale) { m_HeightmapHeightScale = scale; }
+
 	// Get data for rendering
 	void FillTerrainConstants(struct TerrainConstants& terrainConstants) const;
 	nvrhi::TextureHandle GetHeightmapTexture() const { return m_HeightmapTexture; }

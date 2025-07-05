@@ -2,19 +2,30 @@
 
 #include <donut/app/imgui_renderer.h>
 
+#include "donut/core/math/math.h"
+
 
 class LandscapesApplication;
 
 // Data shared between the application layer and the user interface layer
 struct UIData
 {
-	bool Wireframe = true;
+	bool Wireframe = false;
 	bool BackFaceCulling = true;
 
 	bool DrawTerrain = true;
 	bool DrawObjects = false;
 
 	int TerrainLOD = 0;
+	float TerrainHeight = 1.0f;
+
+	donut::math::float3 CameraPosition;
+	donut::math::float3 LightDirection;
+
+	UIData()
+	{
+		LightDirection = donut::math::sphericalToCartesian(0.0f, -0.7f, 1.0f);
+	}
 };
 
 

@@ -8,10 +8,9 @@
 
 struct TerrainConstants
 {
-	float2 Extents;
-	float HeightScale;
-
-	float2 HeightmapResolution;
+	float4 TerrainExtentsAndInvExtents;
+	float4 HeightmapResolutionAndInvResolution;
+	float2 HeightScaleAndInvScale;
 };
 
 struct TerrainPushConstants

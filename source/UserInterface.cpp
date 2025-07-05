@@ -29,6 +29,21 @@ void UIRenderer::buildUI()
 	ImGui::Checkbox("Draw Objects", &m_UI.DrawObjects);
 
 	ImGui::SliderInt("Terrain LOD", &m_UI.TerrainLOD, 0, 9);
+	ImGui::DragFloat("Terrain Height", &m_UI.TerrainHeight, 1.0f, 0.0f, 1000.0f);
+
+	ImGui::Separator();
+
+	ImGui::Text("Camera Position: %.1f, %.1f, %.1f", m_UI.CameraPosition.x, m_UI.CameraPosition.y, m_UI.CameraPosition.z);
+
+	ImGui::Separator();
+
+	{
+		float azimuth, elevation, distance;
+		cartesianToSpherical(m_UI.LightDirection, azimuth, elevation, distance);
+		ImGui::SliderAngle("Sun Azimuth", &azimuth, -179.0f, 180.0f);
+		ImGui::SliderAngle("Sun Elevation", &elevation, -89.0f, 0.0f);
+		m_UI.LightDirection = sphericalToCartesian(azimuth, elevation, distance);
+	}
 
 	ImGui::End();
 }

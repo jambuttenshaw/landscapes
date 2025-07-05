@@ -288,9 +288,9 @@ uint Terrain::CreateSubtreeFor(
 
 void Terrain::FillTerrainConstants(struct TerrainConstants& terrainConstants) const
 {
-	terrainConstants.Extents = m_HeightmapExtents;
-	terrainConstants.HeightScale = m_HeightmapHeightScale;
-	terrainConstants.HeightmapResolution = static_cast<float2>(m_HeightmapResolution);
+	terrainConstants.TerrainExtentsAndInvExtents = float4(m_HeightmapExtents, 1.0f / m_HeightmapExtents);
+	terrainConstants.HeightmapResolutionAndInvResolution = float4(static_cast<float2>(m_HeightmapResolution), 1.0f / static_cast<float2>(m_HeightmapResolution));
+	terrainConstants.HeightScaleAndInvScale = float2(m_HeightmapHeightScale, 1.0f / m_HeightmapHeightScale);
 }
 
 void Terrain::GetAllTilesAtLevel(uint level, std::vector<TerrainTile*>& outTiles) const

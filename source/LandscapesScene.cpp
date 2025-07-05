@@ -1,5 +1,6 @@
 #include "LandscapesScene.h"
 
+#include "UserInterface.h"
 #include "donut/app/ApplicationBase.h"
 
 using namespace donut;
@@ -147,7 +148,8 @@ static const uint32_t g_Indices[] = {
 };
 
 
-LandscapesScene::LandscapesScene()
+LandscapesScene::LandscapesScene(UIData& ui)
+	: m_UI(ui)
 {
 }
 
@@ -221,6 +223,8 @@ bool LandscapesScene::Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandL
         {
 	        return false;
         }
+
+        m_UI.TerrainHeight = m_Terrain->GetHeightScale();
     }
 
     auto cubeNode = std::make_shared<engine::SceneGraphNode>();
@@ -229,13 +233,13 @@ bool LandscapesScene::Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandL
     cubeNode->SetLeaf(m_CubeMeshInstance);
     cubeNode->SetName("CubeNode");
 
-    auto sunLight = std::make_shared<engine::DirectionalLight>();
-    m_SceneGraph->AttachLeafNode(rootNode, sunLight);
+    m_SunLight = std::make_shared<engine::DirectionalLight>();
+    m_SceneGraph->AttachLeafNode(rootNode, m_SunLight);
 
-    sunLight->SetDirection(double3(0.0, -1.0, 0.0));
-    sunLight->angularSize = 0.53f;
-    sunLight->irradiance = 1.f;
-    sunLight->SetName("Sun");
+    m_SunLight->SetDirection(static_cast<double3>(m_UI.LightDirection));
+    m_SunLight->angularSize = 0.53f;
+    m_SunLight->irradiance = 1.f;
+    m_SunLight->SetName("Sun");
 
     m_SceneGraph->Refresh(0);
 
@@ -287,4 +291,12 @@ nvrhi::BufferHandle LandscapesScene::CreateMaterialConstantBuffer(nvrhi::IDevice
     commandList->writeBuffer(buffer, &constants, sizeof(constants));
 
     return buffer;
+}
+
+
+void LandscapesScene::Animate(float deltaTime)
+{
+    m_SunLight->SetDirection(static_cast<double3>(m_UI.LightDirection));
+
+    m_Terrain->SetHeightScale(m_UI.TerrainHeight);
 }

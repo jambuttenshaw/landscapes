@@ -19,6 +19,7 @@ const char* g_WindowTitle = "Landscapes";
 LandscapesApplication::LandscapesApplication(donut::app::DeviceManager* deviceManager, UIData& ui)
 	: ApplicationBase(deviceManager)
 	, m_UI(ui)
+	, m_Scene(ui)
 {
 }
 
@@ -44,6 +45,7 @@ bool LandscapesApplication::Init()
     m_CommandList = GetDevice()->createCommandList();
 
     m_Camera.LookTo(float3{ 0.0f, 150.0f, 0.0f }, float3{ 0.0f, 0.0f, 1.0f });
+    m_Camera.SetMoveSpeed(25.0f);
 
     m_CommandList->open();
 
@@ -109,6 +111,10 @@ void LandscapesApplication::Animate(float fElapsedTimeSeconds)
 {
     m_Camera.Animate(fElapsedTimeSeconds);
 	GetDeviceManager()->SetInformativeWindowTitle(g_WindowTitle);
+
+    m_Scene.Animate(fElapsedTimeSeconds);
+
+    m_UI.CameraPosition = m_Camera.GetPosition();
 }
 
 void LandscapesApplication::BackBufferResizing()
@@ -118,6 +124,8 @@ void LandscapesApplication::BackBufferResizing()
 
 void LandscapesApplication::Render(nvrhi::IFramebuffer* framebuffer)
 {
+    m_Scene.GetSceneGraph()->Refresh(GetFrameIndex());
+
     const auto& fbInfo = framebuffer->getFramebufferInfo();
 
     uint2 size = uint2(fbInfo.width, fbInfo.height);
@@ -203,7 +211,7 @@ void LandscapesApplication::Render(nvrhi::IFramebuffer* framebuffer)
 
     render::DeferredLightingPass::Inputs deferredInputs;
     deferredInputs.SetGBuffer(*m_GBuffer);
-    deferredInputs.ambientColorTop = 0.2f;
+    deferredInputs.ambientColorTop = 0.0f;
     deferredInputs.ambientColorBottom = deferredInputs.ambientColorTop * float3(0.3f, 0.4f, 0.3f);
     deferredInputs.lights = &m_Scene.GetLights();
     deferredInputs.output = m_ShadedColour;
