@@ -42,6 +42,9 @@ bool LandscapesApplication::Init()
     m_DeferredLightingPass = std::make_unique<render::DeferredLightingPass>(GetDevice(), m_CommonPasses);
     m_DeferredLightingPass->Init(m_ShaderFactory);
 
+    m_GBufferVisualizationPass = std::make_unique<GBufferVisualizationPass>(GetDevice(), m_CommonPasses);
+    m_GBufferVisualizationPass->Init(m_ShaderFactory);
+
     m_CommandList = GetDevice()->createCommandList();
 
     m_Camera.LookTo(float3{ 0.0f, 150.0f, 0.0f }, float3{ 0.0f, 0.0f, 1.0f });
@@ -136,6 +139,7 @@ void LandscapesApplication::Render(nvrhi::IFramebuffer* framebuffer)
         m_ShadedColour = nullptr;
         m_BindingCache->Clear();
         m_DeferredLightingPass->ResetBindingCache();
+        m_GBufferVisualizationPass->ResetBindingCache();
 
         m_GBufferPass.reset();
 
@@ -216,7 +220,9 @@ void LandscapesApplication::Render(nvrhi::IFramebuffer* framebuffer)
     deferredInputs.lights = &m_Scene.GetLights();
     deferredInputs.output = m_ShadedColour;
 
-    m_DeferredLightingPass->Render(m_CommandList, m_View, deferredInputs);
+    //m_DeferredLightingPass->Render(m_CommandList, m_View, deferredInputs);
+
+    m_GBufferVisualizationPass->Render(m_CommandList, m_View, *m_GBuffer, m_ShadedColour);
 
     m_CommonPasses->BlitTexture(m_CommandList, framebuffer, m_ShadedColour, m_BindingCache.get());
     

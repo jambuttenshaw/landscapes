@@ -11,7 +11,7 @@ using namespace donut;
 using namespace math;
 
 #include <donut/shaders/gbuffer_cb.h>
-#include "TerrainShaders.h"
+#include "Terrain/TerrainShaders.h"
 
 
 TerrainGBufferFillPass::TerrainGBufferFillPass(nvrhi::IDevice* device, std::shared_ptr<engine::CommonRenderPasses> commonPasses)
@@ -69,6 +69,8 @@ void TerrainGBufferFillPass::RenderTerrain(
 	donut::render::IDrawStrategy& drawStrategy
 )
 {
+	commandList->beginMarker("RenderTerrain");
+
 	// Update view constant buffer
 	GBufferFillConstants gbufferConstants = {};
 	view->FillPlanarViewConstants(gbufferConstants.view);
@@ -150,11 +152,13 @@ void TerrainGBufferFillPass::RenderTerrain(
 
 		commandList->drawIndexed(args);
 	}
+
+	commandList->endMarker();
 }
 
 nvrhi::ShaderHandle TerrainGBufferFillPass::CreateVertexShader(engine::ShaderFactory& shaderFactory)
 {
-	char const* sourceFileName = "app/TerrainShaders.hlsl";
+	char const* sourceFileName = "app/Terrain/TerrainShaders.hlsl";
 
 	return shaderFactory.CreateAutoShader(sourceFileName, "gbuffer_vs",
 		DONUT_MAKE_PLATFORM_SHADER(g_landscape_shaders_gbuffer_vs), nullptr, nvrhi::ShaderType::Vertex);
@@ -162,7 +166,7 @@ nvrhi::ShaderHandle TerrainGBufferFillPass::CreateVertexShader(engine::ShaderFac
 
 nvrhi::ShaderHandle TerrainGBufferFillPass::CreatePixelShader(engine::ShaderFactory& shaderFactory)
 {
-	char const* sourceFileName = "app/TerrainShaders.hlsl";
+	char const* sourceFileName = "app/Terrain/TerrainShaders.hlsl";
 
 	return shaderFactory.CreateAutoShader(sourceFileName, "gbuffer_ps", 
 		DONUT_MAKE_PLATFORM_SHADER(g_landscape_shaders_gbuffer_ps), nullptr, nvrhi::ShaderType::Pixel);

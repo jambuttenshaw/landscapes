@@ -13,6 +13,7 @@
 
 #include "UserInterface.h"
 #include "LandscapesScene.h"
+#include "passes/GBufferVisualizationPass.h"
 #include "passes/TerrainPass.h"
 
 
@@ -66,6 +67,7 @@ private:
 	std::unique_ptr<TerrainGBufferFillPass> m_TerrainGBufferPass;
 
 	std::unique_ptr<donut::render::DeferredLightingPass> m_DeferredLightingPass;
+	std::unique_ptr<GBufferVisualizationPass> m_GBufferVisualizationPass;
 
 	LandscapesScene m_Scene;
 };
