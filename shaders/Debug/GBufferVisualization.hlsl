@@ -26,7 +26,7 @@ void visualize_normals_cs(uint3 DTid : SV_DispatchThreadID)
     float2 uv = (float2) DTid.xy / (float2) (g_GBuffer.Dims - 1);
     float3 normal = t_GBufferNormals.SampleLevel(s_Sampler, uv, 0).rgb;
 
-    normal = all(normal == 0.0f) ? normal : normal * 0.5f + 0.5f;
+    //normal = all(normal == 0.0f) ? normal : normal * 0.5f + 0.5f;
 
     u_Output[DTid.xy] = float4(normal, 1.0f);
 }

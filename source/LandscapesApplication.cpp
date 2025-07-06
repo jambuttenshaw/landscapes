@@ -220,9 +220,13 @@ void LandscapesApplication::Render(nvrhi::IFramebuffer* framebuffer)
     deferredInputs.lights = &m_Scene.GetLights();
     deferredInputs.output = m_ShadedColour;
 
-    //m_DeferredLightingPass->Render(m_CommandList, m_View, deferredInputs);
+    m_DeferredLightingPass->Render(m_CommandList, m_View, deferredInputs);
 
-    m_GBufferVisualizationPass->Render(m_CommandList, m_View, *m_GBuffer, m_ShadedColour);
+    // Debug view modes
+    if (m_UI.ViewMode == ViewModes::Normals)
+    {
+		m_GBufferVisualizationPass->Render(m_CommandList, m_View, *m_GBuffer, m_ShadedColour);
+    }
 
     m_CommonPasses->BlitTexture(m_CommandList, framebuffer, m_ShadedColour, m_BindingCache.get());
     

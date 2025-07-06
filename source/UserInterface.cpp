@@ -20,6 +20,18 @@ void UIRenderer::buildUI()
 
 	ImGui::Separator();
 
+	{
+		const char* modes[] = {
+			"Lit",
+			"Normals"
+		};
+		int currentItem = static_cast<int>(m_UI.ViewMode);
+		ImGui::Combo("View Mode", &currentItem, modes, static_cast<int>(ViewModes::COUNT));
+		m_UI.ViewMode = static_cast<ViewModes>(currentItem);
+	}
+
+	ImGui::Separator();
+
 	ImGui::Checkbox("Wireframe", &m_UI.Wireframe);
 	ImGui::Checkbox("Backface Culling", &m_UI.BackFaceCulling);
 

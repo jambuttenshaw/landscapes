@@ -7,9 +7,18 @@
 
 class LandscapesApplication;
 
+enum class ViewModes : uint8_t
+{
+	Lit = 0,
+	Normals,
+	COUNT
+};
+
 // Data shared between the application layer and the user interface layer
 struct UIData
 {
+	ViewModes ViewMode = ViewModes::Lit;
+
 	bool Wireframe = false;
 	bool BackFaceCulling = true;
 
