@@ -68,6 +68,7 @@ donut_compile_shaders_all_platforms(
 
 add_executable(${project} WIN32 ${sources})
 
+target_include_directories(${project} PUBLIC "source")
 target_include_directories(${project} PUBLIC "shaders/Shared")
 target_include_directories(${project} PUBLIC "vendor")
 

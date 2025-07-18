@@ -8,6 +8,33 @@
 
 using namespace donut::math;
 
+// Primary = camera view
+// Secondary = e.g. view from light source
+// Each view requires its own tessellation scheme and mesh
+enum TerrainViewType : uint8_t
+{
+	TerrainViewType_Primary = 0,
+	TerrainViewType_Secondary,
+	TerrainViewType_COUNT
+};
+
+
+class TerrainView
+{
+public:
+	explicit TerrainView(TerrainViewType viewType, uint maxDepth);
+
+	void Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandList);
+
+	inline nvrhi::IBuffer* GetCBTBuffer() const { return m_CBTBuffer; }
+
+protected:
+	TerrainViewType m_ViewType;
+
+	uint m_MaxDepth = 8;
+	nvrhi::BufferHandle m_CBTBuffer;
+};
+
 
 class Terrain
 {
@@ -25,8 +52,6 @@ public:
 		uint CBTInitDepth = 1;
 	};
 
-	~Terrain();
-
 	bool Init(
 		nvrhi::IDevice* device,
 		nvrhi::ICommandList* commandList,
@@ -37,6 +62,8 @@ public:
 
 	inline float GetHeightScale() const { return m_HeightmapHeightScale; }
 	inline void SetHeightScale(float scale) { m_HeightmapHeightScale = scale; }
+
+	inline const TerrainView& GetTerrainView(TerrainViewType viewType) const { return m_TerrainViews.at(viewType); }
 
 	// Get data for rendering
 	void FillTerrainConstants(struct TerrainConstants& terrainConstants) const;
@@ -51,9 +78,8 @@ private:
 	// The number of meters each pixel in the heightmap corresponds to
 	float2 m_HeightmapMetersPerPixel;
 
-	// CBT
-	uint m_CBTMaxDepth = 8;
-	nvrhi::BufferHandle m_CBTBuffer;
+	// The terrain effectively requires a different mesh for different types of view as different views will use different tessellation schemes
+	std::vector<TerrainView> m_TerrainViews;
 
 	// Textures
 	nvrhi::TextureHandle m_HeightmapTexture;

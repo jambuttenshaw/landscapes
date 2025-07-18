@@ -7,8 +7,37 @@
 #include <donut/engine/CommonRenderPasses.h>
 #include <donut/engine/MaterialBindingCache.h>
 
+#include "terrain/Terrain.h"
 
-class Terrain;
+
+class ITerrainPass
+{
+public:
+    virtual ~ITerrainPass() = default;
+
+    virtual void SetupView() = 0;
+    virtual void SetupPipeline() = 0;
+};
+
+class ITerrainTessellationPass
+{
+public:
+    virtual ~ITerrainTessellationPass() = default;
+
+    // Run tessellation pipeline for a specific terrain
+    virtual void Execute() = 0;
+};
+
+
+// Can be inherited from to give other passes additional required context
+// Private members can be used by passes for internal state storage
+struct TerrainPassContext
+{
+    TerrainViewType TerrainView;
+    // Capable of updating the terrain's tessellation based on the view type
+    ITerrainTessellationPass* TessellationPass;
+};
+
 
 class TerrainGBufferFillPass
 {
@@ -32,16 +61,6 @@ public:
     virtual ~TerrainGBufferFillPass() = default;
 
     virtual void Init(donut::engine::ShaderFactory& shaderFactory);
-
-    void RenderTerrain(
-        nvrhi::ICommandList* commandList,
-        const donut::engine::IView* view,
-        const donut::engine::IView* viewPrev,
-        nvrhi::IFramebuffer* framebuffer,
-        const Terrain* terrain,
-        bool wireframe,
-        donut::render::IDrawStrategy& drawStrategy
-    );
 
 protected:
 
@@ -80,3 +99,19 @@ protected:
     std::unordered_map<const donut::engine::BufferGroup*, nvrhi::BindingSetHandle> m_InputBindingSets;
     std::unordered_map<const Terrain*, nvrhi::BindingSetHandle> m_TerrainBindingSets;
 };
+
+
+// Renders terrains for a given view
+//  The draw strategy feeds the terrain instances
+//  The terrain pass knows how to draw the terrain
+//  The pass context describes context around how terrain should be rendered without referencing specific terrain,
+//  for example the tessellation scheme to be used
+void RenderTerrainView(
+    nvrhi::ICommandList* commandList,
+    const donut::engine::IView* view,
+    const donut::engine::IView* viewPrev,
+    nvrhi::IFramebuffer* framebuffer,
+    donut::render::IDrawStrategy& drawStrategy,
+    ITerrainPass& pass,
+    TerrainPassContext& passContext
+);

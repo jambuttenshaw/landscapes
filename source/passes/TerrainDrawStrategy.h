@@ -14,7 +14,7 @@ public:
 
     virtual const donut::render::DrawItem* GetNextItem() override;
 
-    void SetData(const Terrain* terrain, donut::math::uint levelToDraw);
+    void SetData(const Terrain* terrain);
 
 private:
     std::vector<donut::render::DrawItem> m_DrawItems;
