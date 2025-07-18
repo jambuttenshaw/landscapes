@@ -76,27 +76,29 @@ endif()
 
 ## This configures the Visual Studio project with custom include directories to help Intellisense etc find the correct includes
 ## I got this solution from: https://stackoverflow.com/questions/47475731/cmake-include-directories-for-custom-target-type
-set(project landscapes_shaders)
+if (CMAKE_GENERATOR MATCHES "Visual Studio")
+    set(project landscapes_shaders)
 
-set(SHADER_INCLUDE_PATHS "")
+    set(SHADER_INCLUDE_PATHS "")
 
-list(APPEND SHADER_INCLUDE_PATHS "${CMAKE_CURRENT_SOURCE_DIR}/Donut/include/")
+    list(APPEND SHADER_INCLUDE_PATHS "${CMAKE_CURRENT_SOURCE_DIR}/Donut/include/")
 
-list(APPEND SHADER_INCLUDE_PATHS "${libcbt_shaders}")
-list(APPEND SHADER_INCLUDE_PATHS "${libleb_shaders}")
+    list(APPEND SHADER_INCLUDE_PATHS "${libcbt_shaders}")
+    list(APPEND SHADER_INCLUDE_PATHS "${libleb_shaders}")
 
-file(
-        WRITE "${CMAKE_BINARY_DIR}/${CMAKE_PROJECT_NAME}.vcxproj.user"
-"<?xml version=\"1.0\" encoding=\"utf-8\"?>
-<Project ToolsVersion=\"Current\" xmlns=\"http://schemas.microsoft.com/developer/msbuild/2003\">
-  <PropertyGroup>
-    <IncludePath>$(IncludePath);@SHADER_INCLUDE_PATHS@</IncludePath>
-  </PropertyGroup>
-</Project>"
+    file(
+            WRITE "${CMAKE_BINARY_DIR}/${CMAKE_PROJECT_NAME}.vcxproj.user"
+            "<?xml version=\"1.0\" encoding=\"utf-8\"?>
+            <Project ToolsVersion=\"Current\" xmlns=\"http://schemas.microsoft.com/developer/msbuild/2003\">
+            <PropertyGroup>
+                <IncludePath>$(IncludePath);@SHADER_INCLUDE_PATHS@</IncludePath>
+            </PropertyGroup>
+            </Project>"
+        )
+
+    configure_file(
+        "${CMAKE_BINARY_DIR}/${CMAKE_PROJECT_NAME}.vcxproj.user"
+        "${CMAKE_CURRENT_BINARY_DIR}/${project}.vcxproj.user"
+        @ONLY
     )
-
-configure_file(
-    "${CMAKE_BINARY_DIR}/${CMAKE_PROJECT_NAME}.vcxproj.user"
-    "${CMAKE_CURRENT_BINARY_DIR}/${project}.vcxproj.user"
-    @ONLY
-)
+endif()
