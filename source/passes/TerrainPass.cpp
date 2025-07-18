@@ -11,7 +11,7 @@ using namespace donut;
 using namespace math;
 
 #include <donut/shaders/gbuffer_cb.h>
-#include "Terrain/TerrainShaders.h"
+#include "TerrainShaders.h"
 
 
 TerrainGBufferFillPass::TerrainGBufferFillPass(nvrhi::IDevice* device, std::shared_ptr<engine::CommonRenderPasses> commonPasses)

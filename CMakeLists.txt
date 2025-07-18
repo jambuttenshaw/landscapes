@@ -46,16 +46,21 @@ GroupSources("source")
 set(project landscapes)
 set(folder "Landscapes")
 
-set(libcbt_shaders "${CMAKE_CURRENT_SOURCE_DIR}/vendor/libcbt/hlsl")
-set(libleb_shaders "${CMAKE_CURRENT_SOURCE_DIR}/vendor/libleb/hlsl")
+set(SHADER_INCLUDE_PATHS "")
+list(APPEND SHADER_INCLUDE_PATHS "${CMAKE_CURRENT_SOURCE_DIR}/shaders/Shared")
+list(APPEND SHADER_INCLUDE_PATHS "${CMAKE_CURRENT_SOURCE_DIR}/vendor/libcbt/hlsl")
+list(APPEND SHADER_INCLUDE_PATHS "${CMAKE_CURRENT_SOURCE_DIR}/vendor/libleb/hlsl")
 
-set(shadermake_parameters "-I ${libcbt_shaders} -I ${libleb_shaders}")
+set(shadermake_include_dirs "")
+foreach(include_dir ${SHADER_INCLUDE_PATHS})
+    set(shadermake_include_dirs "${shadermake_include_dirs} -I ${include_dir}")
+endforeach()
 
 donut_compile_shaders_all_platforms(
     TARGET ${project}_shaders
     PROJECT_NAME "Landscapes"
     CONFIG ${CMAKE_CURRENT_SOURCE_DIR}/shaders/shaders.cfg
-    SHADERMAKE_OPTIONS ${shadermake_parameters}
+    SHADERMAKE_OPTIONS ${shadermake_include_dirs}
     SOURCES ${shaders}
     FOLDER ${folder}
     OUTPUT_BASE ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/shaders/${project}
@@ -63,7 +68,7 @@ donut_compile_shaders_all_platforms(
 
 add_executable(${project} WIN32 ${sources})
 
-target_include_directories(${project} PUBLIC "shaders")
+target_include_directories(${project} PUBLIC "shaders/Shared")
 target_include_directories(${project} PUBLIC "vendor")
 
 target_link_libraries(${project} donut_app donut_engine donut_render)
@@ -79,12 +84,7 @@ endif()
 if (CMAKE_GENERATOR MATCHES "Visual Studio")
     set(project landscapes_shaders)
 
-    set(SHADER_INCLUDE_PATHS "")
-
     list(APPEND SHADER_INCLUDE_PATHS "${CMAKE_CURRENT_SOURCE_DIR}/Donut/include/")
-
-    list(APPEND SHADER_INCLUDE_PATHS "${libcbt_shaders}")
-    list(APPEND SHADER_INCLUDE_PATHS "${libleb_shaders}")
 
     file(
             WRITE "${CMAKE_BINARY_DIR}/${CMAKE_PROJECT_NAME}.vcxproj.user"

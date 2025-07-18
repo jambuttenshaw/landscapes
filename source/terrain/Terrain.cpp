@@ -5,7 +5,7 @@
 using namespace donut;
 using namespace donut::math;
 
-#include "Terrain/TerrainShaders.h"
+#include "TerrainShaders.h"
 
 
 static void CreateTerrainMeshData(
