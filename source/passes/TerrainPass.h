@@ -19,27 +19,16 @@ public:
     virtual void SetupPipeline() = 0;
 };
 
-class ITerrainTessellationPass
-{
-public:
-    virtual ~ITerrainTessellationPass() = default;
-
-    // Run tessellation pipeline for a specific terrain
-    virtual void Execute() = 0;
-};
-
 
 // Can be inherited from to give other passes additional required context
 // Private members can be used by passes for internal state storage
 struct TerrainPassContext
 {
     TerrainViewType TerrainView;
-    // Capable of updating the terrain's tessellation based on the view type
-    ITerrainTessellationPass* TessellationPass;
 };
 
 
-class TerrainGBufferFillPass
+class TerrainGBufferFillPass : public ITerrainPass
 {
 public:
     union PipelineKey

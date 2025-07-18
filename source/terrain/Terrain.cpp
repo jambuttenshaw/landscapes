@@ -70,9 +70,8 @@ bool Terrain::Init(
 	}
 
 	// Create views
-	for (uint viewType = 0; viewType < static_cast<uint>(TerrainViewType_COUNT); viewType++)
 	{
-		m_TerrainViews.emplace_back(static_cast<TerrainViewType>(viewType), params.CBTMaxDepth)
+		m_TerrainViews.emplace_back(TerrainViewType_Primary, params.CBTMaxDepth)
 			.Init(device, commandList);
 	}
 

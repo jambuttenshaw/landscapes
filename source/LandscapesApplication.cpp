@@ -45,6 +45,9 @@ bool LandscapesApplication::Init()
     m_GBufferVisualizationPass = std::make_unique<GBufferVisualizationPass>(GetDevice(), m_CommonPasses);
     m_GBufferVisualizationPass->Init(m_ShaderFactory);
 
+    m_TerrainTessellator = std::make_unique<TerrainTessellationPass>(GetDevice());
+    m_TerrainTessellator->Init(*m_ShaderFactory);
+
     m_CommandList = GetDevice()->createCommandList();
 
     m_Camera.LookTo(float3{ 0.0f, 150.0f, 0.0f }, float3{ 0.0f, 0.0f, 1.0f });
@@ -165,23 +168,32 @@ void LandscapesApplication::Render(nvrhi::IFramebuffer* framebuffer)
 
     m_GBuffer->Clear(m_CommandList);
 
+    // Update terrain
+    if (m_UI.UpdateTerrain)
+	{
+	    m_TerrainTessellator->ExecuteForAllViews(
+			m_CommandList,
+            &m_View,
+			*m_Scene.GetTerrain()
+        );
+    }
     // Draw terrain
     if (m_UI.DrawTerrain)
     {
-        Terrain* terrain = m_Scene.GetTerrain().get();
-
         TerrainDrawStrategy drawStrategy;
-        uint lod = clamp(static_cast<uint>(m_UI.TerrainLOD), 0u, terrain->GetNumLevels() - 1);
-        drawStrategy.SetData(terrain, lod);
+        drawStrategy.SetData(*m_Scene.GetTerrain());
 
-        m_TerrainGBufferPass->RenderTerrain(
+        TerrainPassContext context;
+        context.TerrainView = TerrainViewType_Primary;
+
+        RenderTerrainView(
             m_CommandList,
             &m_View,
             &m_View,
             m_GBuffer->GBufferFramebuffer->GetFramebuffer(m_View),
-            terrain,
-            m_UI.Wireframe, // TODO: This was quite nice before passing extra state through as a context
-            drawStrategy
+            drawStrategy,
+            *m_TerrainGBufferPass,
+            context
         );
     }
 

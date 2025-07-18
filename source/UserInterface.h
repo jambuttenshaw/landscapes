@@ -22,7 +22,9 @@ struct UIData
 	bool Wireframe = false;
 	bool BackFaceCulling = true;
 
+	bool UpdateTerrain = true;
 	bool DrawTerrain = true;
+
 	bool DrawObjects = false;
 
 	int TerrainLOD = 0;

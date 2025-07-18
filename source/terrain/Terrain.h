@@ -15,7 +15,7 @@ enum TerrainViewType : uint8_t
 {
 	TerrainViewType_Primary = 0,
 	TerrainViewType_Secondary,
-	TerrainViewType_COUNT
+	TerrainViewType_Count
 };
 
 
@@ -63,7 +63,7 @@ public:
 	inline float GetHeightScale() const { return m_HeightmapHeightScale; }
 	inline void SetHeightScale(float scale) { m_HeightmapHeightScale = scale; }
 
-	inline const TerrainView& GetTerrainView(TerrainViewType viewType) const { return m_TerrainViews.at(viewType); }
+	inline const TerrainView& GetTerrainView(size_t viewIndex) const { return m_TerrainViews.at(viewIndex); }
 
 	// Get data for rendering
 	void FillTerrainConstants(struct TerrainConstants& terrainConstants) const;

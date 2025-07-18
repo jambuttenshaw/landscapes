@@ -20,10 +20,8 @@ const donut::render::DrawItem* TerrainDrawStrategy::GetNextItem()
 	return &*(m_NextItem++);
 }
 
-void TerrainDrawStrategy::SetData(const Terrain* terrain)
+void TerrainDrawStrategy::SetData(const Terrain& terrain)
 {
-	assert(terrain != nullptr);
-
 	donut::render::DrawItem& drawItem = m_DrawItems.emplace_back();
 	drawItem.instance = ;
 	drawItem.mesh = ;
