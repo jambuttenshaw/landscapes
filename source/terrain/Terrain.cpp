@@ -1,6 +1,9 @@
 #include "Terrain.h"
 
-#include <donut/shaders/bindless.h>
+#include "engine/SceneGraphEx.h"
+#include "nvrhi/utils.h"
+
+#define CBT_IMPLEMENTATION
 #include "libcbt/cbt.h"
 
 using namespace donut;
@@ -8,15 +11,16 @@ using namespace donut::math;
 
 #include "TerrainShaders.h"
 
-TerrainView::TerrainView(TerrainViewType viewType, uint maxDepth)
-	: m_ViewType(viewType)
+TerrainMeshView::TerrainMeshView(const TerrainMeshInfo* parent, TerrainViewType viewType, uint maxDepth)
+	: m_Parent(parent)
+	, m_ViewType(viewType)
 	, m_MaxDepth(maxDepth)
 {
 }
 
-void TerrainView::Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandList)
+void TerrainMeshView::Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandList)
 {
-	cbt_Tree* cbt = cbt_CreateAtDepth(m_MaxDepth, 1);
+	cbt_Tree* cbt = cbt_CreateAtDepth(m_MaxDepth, 6);
 
 	nvrhi::BufferDesc bufferDesc;
 	bufferDesc.setByteSize(cbt_HeapByteSize(cbt))
@@ -30,31 +34,49 @@ void TerrainView::Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandList)
 
 	commandList->writeBuffer(m_CBTBuffer, cbt_GetHeap(cbt), cbt_HeapByteSize(cbt));
 
+	m_NodeCount = static_cast<uint>(cbt_NodeCount(cbt));
+
 	cbt_Release(cbt);
 }
 
 
-bool Terrain::Init(
-	nvrhi::IDevice* device, 
-	nvrhi::ICommandList* commandList, 
-	engine::TextureCache* textureCache, 
-	engine::SceneGraph* sceneGraph,
-	const CreateParams& params)
+TerrainMeshInstance::TerrainMeshInstance(std::shared_ptr<TerrainMeshInfo> terrain)
+	: MeshInstance(std::move(terrain))
 {
-	if (!(device && commandList && textureCache && sceneGraph))
-	{
-		log::error("Invalid arguments");
-		return false;
-	}
+}
+
+box3 TerrainMeshInstance::GetLocalBoundingBox()
+{
+	float2 extents = Terrain().GetExtents();
+	float height = Terrain().GetHeightScale();
+
+	return {
+		{ -0.5f * extents.x,   0.0f, -0.5f * extents.y },
+		{  0.5f * extents.x, height,  0.5f * extents.y }
+	};
+}
+
+std::shared_ptr<engine::SceneGraphLeaf> TerrainMeshInstance::Clone()
+{
+	return std::make_shared<TerrainMeshInstance>(std::static_pointer_cast<TerrainMeshInfo>(m_Mesh));
+}
+
+engine::SceneContentFlags TerrainMeshInstance::GetContentFlags() const
+{
+	return static_cast<engine::SceneContentFlags>(SceneContentFlagsEx::Terrain);
+}
+
+TerrainMeshInfo::TerrainMeshInfo(nvrhi::IDevice* device, nvrhi::ICommandList* commandList, donut::engine::TextureCache* textureCache, const CreateParams& params)
+{
+	assert(device && commandList && textureCache);
+
+	// TODO: Sharing a buffer group with other terrain meshes would be ideal
+	buffers = std::make_shared<engine::BufferGroup>();
 
 	m_HeightmapExtents = params.HeightmapExtents;
 	m_HeightmapResolution = params.HeightmapResolution;
 	m_HeightmapHeightScale = params.HeightmapHeightScale;
 	m_HeightmapMetersPerPixel = params.HeightmapExtents / static_cast<float2>(m_HeightmapResolution);
-
-	// Create root node in scene graph for terrain tile hierarchy to attach to
-	m_TerrainRootNode = std::make_shared<engine::SceneGraphNode>();
-	sceneGraph->Attach(sceneGraph->GetRootNode(), m_TerrainRootNode);
 
 	// Load textures for the terrain
 	if (!params.HeightmapTexturePath.empty())
@@ -65,22 +87,27 @@ bool Terrain::Init(
 		if (!heightmapTexture->texture)
 		{
 			log::error("Couldn't load the texture");
-			return false;
+			assert(false);
 		}
 	}
 
 	// Create views
 	{
-		m_TerrainViews.emplace_back(TerrainViewType_Primary, params.CBTMaxDepth)
+		m_TerrainViews.emplace_back(this, TerrainViewType_Primary, params.CBTMaxDepth)
 			.Init(device, commandList);
 	}
 
-	return true;
-}
+	// Create constant buffer
+	m_TerrainCB = device->createBuffer(nvrhi::utils::CreateStaticConstantBufferDesc(
+		sizeof(TerrainConstants), "TerrainConstants"
+	));
 
-void Terrain::FillTerrainConstants(struct TerrainConstants& terrainConstants) const
-{
+	TerrainConstants terrainConstants;
 	terrainConstants.TerrainExtentsAndInvExtents = float4(m_HeightmapExtents, 1.0f / m_HeightmapExtents);
 	terrainConstants.HeightmapResolutionAndInvResolution = float4(static_cast<float2>(m_HeightmapResolution), 1.0f / static_cast<float2>(m_HeightmapResolution));
 	terrainConstants.HeightScaleAndInvScale = float2(m_HeightmapHeightScale, 1.0f / m_HeightmapHeightScale);
+
+	commandList->beginTrackingBufferState(m_TerrainCB, nvrhi::ResourceStates::CopyDest);
+	commandList->writeBuffer(m_TerrainCB, &terrainConstants, sizeof(terrainConstants));
+	commandList->setPermanentBufferState(m_TerrainCB, nvrhi::ResourceStates::ConstantBuffer);
 }

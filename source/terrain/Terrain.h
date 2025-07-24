@@ -1,10 +1,10 @@
 #pragma once
 
 #include <nvrhi/nvrhi.h>
+
 #include <donut/core/math/math.h>
 #include <donut/engine/SceneGraph.h>
-
-#include "donut/engine/TextureCache.h"
+#include <donut/engine/TextureCache.h>
 
 using namespace donut::math;
 
@@ -19,24 +19,33 @@ enum TerrainViewType : uint8_t
 };
 
 
-class TerrainView
+class TerrainMeshInfo;
+
+class TerrainMeshView
 {
 public:
-	explicit TerrainView(TerrainViewType viewType, uint maxDepth);
+	explicit TerrainMeshView(const TerrainMeshInfo* parent, TerrainViewType viewType, uint maxDepth);
 
 	void Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandList);
 
-	inline nvrhi::IBuffer* GetCBTBuffer() const { return m_CBTBuffer; }
+	[[nodiscard]] inline const TerrainMeshInfo* GetParent() const { return m_Parent; }
+	[[nodiscard]] inline nvrhi::IBuffer* GetCBTBuffer() const { return m_CBTBuffer; }
+	[[nodiscard]] inline uint GetMaxDepth() const { return m_MaxDepth; }
+	[[nodiscard]] inline uint GetNodeCount() const { return m_NodeCount; }
 
 protected:
+	const TerrainMeshInfo* m_Parent;
 	TerrainViewType m_ViewType;
 
 	uint m_MaxDepth = 8;
 	nvrhi::BufferHandle m_CBTBuffer;
+
+	// TODO: temporary until indirect dispatch is implemented
+	uint m_NodeCount = -1;
 };
 
 
-class Terrain
+class TerrainMeshInfo : public donut::engine::MeshInfo
 {
 public:
 	struct CreateParams
@@ -47,43 +56,56 @@ public:
 		float HeightmapHeightScale = 100.0f;
 		std::filesystem::path HeightmapTexturePath;
 
-		// Terrain mesh parameters
+		// terrain mesh parameters
 		uint CBTMaxDepth = 8;
 		uint CBTInitDepth = 1;
 	};
 
-	bool Init(
+	TerrainMeshInfo(
 		nvrhi::IDevice* device,
 		nvrhi::ICommandList* commandList,
 		donut::engine::TextureCache* textureCache,
-		donut::engine::SceneGraph* sceneGraph,
 		const CreateParams& params
 	);
 
-	inline float GetHeightScale() const { return m_HeightmapHeightScale; }
 	inline void SetHeightScale(float scale) { m_HeightmapHeightScale = scale; }
 
-	inline const TerrainView& GetTerrainView(size_t viewIndex) const { return m_TerrainViews.at(viewIndex); }
-
-	// Get data for rendering
-	void FillTerrainConstants(struct TerrainConstants& terrainConstants) const;
-	nvrhi::TextureHandle GetHeightmapTexture() const { return m_HeightmapTexture; }
+	[[nodiscard]] inline float2 GetExtents() const { return m_HeightmapExtents; }
+	[[nodiscard]] inline float GetHeightScale() const { return m_HeightmapHeightScale; }
+	[[nodiscard]] inline const TerrainMeshView* GetTerrainView(size_t viewIndex) const { return &m_TerrainViews.at(viewIndex); }
+	[[nodiscard]] nvrhi::TextureHandle GetHeightmapTexture() const { return m_HeightmapTexture; }
+	[[nodiscard]] nvrhi::BufferHandle GetConstantBuffer() const { return m_TerrainCB; }
 
 private:
 	// The width and height of the entire terrain
 	float2 m_HeightmapExtents;
-	float m_HeightmapHeightScale = 0.;
+	float m_HeightmapHeightScale = 1.;
 	// The number of pixels in the heightmap
 	uint2 m_HeightmapResolution;
 	// The number of meters each pixel in the heightmap corresponds to
 	float2 m_HeightmapMetersPerPixel;
 
 	// The terrain effectively requires a different mesh for different types of view as different views will use different tessellation schemes
-	std::vector<TerrainView> m_TerrainViews;
+	std::vector<TerrainMeshView> m_TerrainViews;
 
-	// Textures
+	// GPU resources
 	nvrhi::TextureHandle m_HeightmapTexture;
+	nvrhi::BufferHandle m_TerrainCB;
+};
 
-	// Scene graph objects
-	std::shared_ptr<donut::engine::SceneGraphNode> m_TerrainRootNode;
+
+class TerrainMeshInstance : public donut::engine::MeshInstance
+{
+public:
+	explicit TerrainMeshInstance(std::shared_ptr<TerrainMeshInfo> terrain);
+
+	[[nodiscard]] dm::box3 GetLocalBoundingBox() override;
+	[[nodiscard]] std::shared_ptr<SceneGraphLeaf> Clone() override;
+	[[nodiscard]] donut::engine::SceneContentFlags GetContentFlags() const override;
+
+	[[nodiscard]] TerrainMeshInfo* GetTerrain() const { return dynamic_cast<TerrainMeshInfo*>(m_Mesh.get()); }
+
+protected:
+	// Shorthand for internal use
+	TerrainMeshInfo& Terrain() const { return dynamic_cast<TerrainMeshInfo&>(*m_Mesh); }
 };

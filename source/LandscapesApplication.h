@@ -13,9 +13,12 @@
 
 #include "UserInterface.h"
 #include "LandscapesScene.h"
+
 #include "passes/GBufferVisualizationPass.h"
 #include "passes/TerrainPass.h"
-#include "passes/TerrainTessellationPass.h"
+//#include "passes/TerrainTessellationPass.h"
+
+#include "engine/ViewEx.h"
 
 
 extern const char* g_WindowTitle;
@@ -59,12 +62,12 @@ private:
 	nvrhi::CommandListHandle m_CommandList;
 
 	donut::app::FirstPersonCamera m_Camera;
-	donut::engine::PlanarView m_View;
+	PlanarViewEx m_View;
 
 	std::shared_ptr<donut::render::GBufferRenderTargets> m_GBuffer;
 	nvrhi::TextureHandle m_ShadedColour;
 
-	std::unique_ptr<TerrainTessellationPass> m_TerrainTessellator;
+	//std::unique_ptr<TerrainTessellationPass> m_TerrainTessellator;
 
 	std::unique_ptr<donut::render::GBufferFillPass> m_GBufferPass;
 	std::unique_ptr<TerrainGBufferFillPass> m_TerrainGBufferPass;

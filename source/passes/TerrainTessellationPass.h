@@ -12,7 +12,7 @@ public:
 
     void Init(donut::engine::ShaderFactory& shaderFactory);
 
-    // Run tessellation pipeline for a specific terrain
+    // Run tessellation pipeline for a specific terrainView
     // The tessellation scheme will be decided from the view's type
     void ExecuteForAllViews(
         nvrhi::ICommandList* commandList,

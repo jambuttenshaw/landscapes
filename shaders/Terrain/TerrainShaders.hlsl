@@ -8,13 +8,14 @@
 
 #include "TerrainShaders.h"
 
+#define CBT_HEAP_BUFFER_BINDING REGISTER_SRV(GBUFFER_BINDING_TERRAIN_CBT, GBUFFER_SPACE_TERRAIN)
+#include "ConcurrentBinaryTree.hlsl"
+#include "LongestEdgeBisection.hlsl"
 
 DECLARE_CBUFFER(GBufferFillConstants, c_GBuffer, GBUFFER_BINDING_VIEW_CONSTANTS, GBUFFER_SPACE_VIEW);
-
 DECLARE_PUSH_CONSTANTS(TerrainPushConstants, g_Push, GBUFFER_BINDING_PUSH_CONSTANTS, GBUFFER_SPACE_INPUT);
 
 StructuredBuffer<InstanceData> t_Instances : REGISTER_SRV(GBUFFER_BINDING_INSTANCE_BUFFER, GBUFFER_SPACE_INPUT);
-StructuredBuffer<float3> t_Positions : REGISTER_SRV(GBUFFER_BINDING_VERTEX_BUFFER, GBUFFER_SPACE_INPUT);
 
 DECLARE_CBUFFER(TerrainConstants, c_Terrain, GBUFFER_BINDING_TERRAIN_CONSTANTS, GBUFFER_SPACE_TERRAIN);
 Texture2D<float> t_HeightmapTexture : REGISTER_SRV(GBUFFER_BINDING_TERRAIN_HEIGHTMAP_TEXTURE, GBUFFER_SPACE_TERRAIN);
@@ -32,17 +33,26 @@ void gbuffer_vs(
     out uint o_instance : INSTANCE
 )
 {
-    o_instance = i_instance;
+    o_instance = g_Push.startInstanceLocation;
 
-    i_instance += g_Push.startInstanceLocation;
+    // Terrain rendering uses instancing differently than other opaque geometry
+	// Each triangle is a different instance, and the instance ID is used to determine which node in the CBT it is
+    const InstanceData instance = t_Instances[g_Push.startInstanceLocation];
 
-    const InstanceData instance = t_Instances[i_instance];
+    // Use LEB to find vertex position
+    cbt_Node node = cbt_DecodeNode(i_instance);
 
-    float3 pos = t_Positions[i_vertex];
-    float3 worldPos = mul(instance.transform, float4(pos, 1.0)).xyz;
-    float2 texCoord = (worldPos.xz * c_Terrain.TerrainExtentsAndInvExtents.zw) + 0.5f;
+    float3x2 posMatrix = float3x2(float2(0, 1),
+								  float2(0, 0),
+								  float2(1, 0));
+    posMatrix = leb_DecodeAttributeArray(node, posMatrix);
 
-    worldPos.y += GetTerrainHeight(texCoord);
+    float2 texCoord = float2(posMatrix[i_vertex][0], posMatrix[i_vertex][1]);
+
+    float2 pos = (texCoord - 0.5f) * c_Terrain.TerrainExtentsAndInvExtents.xy;
+    float3 localPos = float3(pos.x, GetTerrainHeight(texCoord), pos.y);
+
+    float3 worldPos = mul(instance.transform, float4(localPos, 1.0)).xyz;
 
     float3 normal = float3(0, 1, 0);
     float3 tangent = float3(1, 0, 0);
@@ -51,8 +61,6 @@ void gbuffer_vs(
     o_vtx.texCoord = texCoord;
     o_vtx.normal = mul(instance.transform, float4(normal, 0)).xyz;
     o_vtx.tangent.xyz = mul(instance.transform, float4(tangent, 0)).xyz;
-    o_vtx.normal = normal;
-    o_vtx.tangent.xyz = tangent;
     o_vtx.tangent.w = 0.0f;
     o_vtx.prevPos = o_vtx.pos;
 

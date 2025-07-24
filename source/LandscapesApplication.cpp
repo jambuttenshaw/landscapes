@@ -5,9 +5,10 @@
 
 #include <donut/render/DrawStrategy.h>
 #include <donut/render/GeometryPasses.h>
-#include <donut/engine/CommonRenderPasses.h>
 
-#include "donut/engine/FramebufferFactory.h"
+#include <donut/engine/CommonRenderPasses.h>
+#include <donut/engine/FramebufferFactory.h>
+
 #include "passes/TerrainDrawStrategy.h"
 
 using namespace donut;
@@ -19,7 +20,7 @@ const char* g_WindowTitle = "Landscapes";
 LandscapesApplication::LandscapesApplication(donut::app::DeviceManager* deviceManager, UIData& ui)
 	: ApplicationBase(deviceManager)
 	, m_UI(ui)
-	, m_Scene(ui)
+	, m_Scene(ui, GetDevice())
 {
 }
 
@@ -45,8 +46,8 @@ bool LandscapesApplication::Init()
     m_GBufferVisualizationPass = std::make_unique<GBufferVisualizationPass>(GetDevice(), m_CommonPasses);
     m_GBufferVisualizationPass->Init(m_ShaderFactory);
 
-    m_TerrainTessellator = std::make_unique<TerrainTessellationPass>(GetDevice());
-    m_TerrainTessellator->Init(*m_ShaderFactory);
+    //m_TerrainTessellator = std::make_unique<TerrainTessellationPass>(GetDevice());
+    //m_TerrainTessellator->Init(*m_ShaderFactory);
 
     m_CommandList = GetDevice()->createCommandList();
 
@@ -55,7 +56,7 @@ bool LandscapesApplication::Init()
 
     m_CommandList->open();
 
-    bool success = m_Scene.Init(GetDevice(), m_CommandList, m_TextureCache.get());
+    bool success = m_Scene.Init(m_CommandList, m_TextureCache.get());
 
     m_CommandList->close();
     GetDevice()->executeCommandList(m_CommandList);
@@ -130,8 +131,6 @@ void LandscapesApplication::BackBufferResizing()
 
 void LandscapesApplication::Render(nvrhi::IFramebuffer* framebuffer)
 {
-    m_Scene.GetSceneGraph()->Refresh(GetFrameIndex());
-
     const auto& fbInfo = framebuffer->getFramebufferInfo();
 
     uint2 size = uint2(fbInfo.width, fbInfo.height);
@@ -166,61 +165,29 @@ void LandscapesApplication::Render(nvrhi::IFramebuffer* framebuffer)
 
     m_CommandList->open();
 
+    m_Scene.Refresh(m_CommandList, GetFrameIndex());
+
     m_GBuffer->Clear(m_CommandList);
 
     // Update terrain
     if (m_UI.UpdateTerrain)
 	{
-	    m_TerrainTessellator->ExecuteForAllViews(
-			m_CommandList,
-            &m_View,
-			*m_Scene.GetTerrain()
-        );
+	    
     }
     // Draw terrain
     if (m_UI.DrawTerrain)
     {
         TerrainDrawStrategy drawStrategy;
-        drawStrategy.SetData(*m_Scene.GetTerrain());
-
-        TerrainPassContext context;
-        context.TerrainView = TerrainViewType_Primary;
+        TerrainGBufferFillPass::Context context;
 
         RenderTerrainView(
             m_CommandList,
             &m_View,
             &m_View,
             m_GBuffer->GBufferFramebuffer->GetFramebuffer(m_View),
+            m_Scene.GetSceneGraph()->GetRootNode(),
             drawStrategy,
             *m_TerrainGBufferPass,
-            context
-        );
-    }
-
-    // Draw objects in scene
-    if (m_UI.DrawObjects)
-    {
-        render::DrawItem drawItem;
-        drawItem.instance = m_Scene.GetCubeMeshInstance().get();
-        drawItem.mesh = drawItem.instance->GetMesh().get();
-        drawItem.geometry = drawItem.mesh->geometries[0].get();
-        drawItem.material = drawItem.geometry->material.get();
-        drawItem.buffers = drawItem.mesh->buffers.get();
-        drawItem.distanceToCamera = 0;
-        drawItem.cullMode = GetCullMode();
-
-        render::PassthroughDrawStrategy drawStrategy;
-        drawStrategy.SetData(&drawItem, 1);
-
-        render::GBufferFillPass::Context context;
-
-        render::RenderView(
-            m_CommandList,
-            &m_View,
-            &m_View,
-            m_GBuffer->GBufferFramebuffer->GetFramebuffer(m_View),
-            drawStrategy,
-            *m_GBufferPass,
             context
         );
     }
