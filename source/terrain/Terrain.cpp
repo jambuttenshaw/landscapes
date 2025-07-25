@@ -24,19 +24,47 @@ void TerrainMeshView::Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandL
 {
 	cbt_Tree* cbt = cbt_CreateAtDepth(m_MaxDepth, m_InitDepth);
 
-	nvrhi::BufferDesc bufferDesc;
-	bufferDesc.setByteSize(cbt_HeapByteSize(cbt))
-		.setCanHaveTypedViews(true)
-		.setStructStride(sizeof(uint))
-		.setCanHaveUAVs(true)
-		.setInitialState(nvrhi::ResourceStates::ShaderResource)
-		.setKeepInitialState(true)
-		.setDebugName("CBT");
-	m_CBTBuffer = device->createBuffer(bufferDesc);
+	{
+		nvrhi::BufferDesc bufferDesc;
+		bufferDesc.setByteSize(cbt_HeapByteSize(cbt))
+			.setCanHaveTypedViews(true)
+			.setStructStride(sizeof(uint))
+			.setCanHaveUAVs(true)
+			.setInitialState(nvrhi::ResourceStates::ShaderResource)
+			.setKeepInitialState(true)
+			.setDebugName("CBT");
+		m_CBTBuffer = device->createBuffer(bufferDesc);
 
-	commandList->writeBuffer(m_CBTBuffer, cbt_GetHeap(cbt), cbt_HeapByteSize(cbt));
+		commandList->writeBuffer(m_CBTBuffer, cbt_GetHeap(cbt), cbt_HeapByteSize(cbt));
+	}
 
-	m_NodeCount = static_cast<uint>(cbt_NodeCount(cbt));
+	{
+		struct IndirectArgs
+		{
+			nvrhi::DispatchIndirectArguments dispatchArgs;
+			nvrhi::DrawIndirectArguments drawArgs;
+		};
+
+		nvrhi::BufferDesc bufferDesc;
+		bufferDesc.setByteSize(sizeof(IndirectArgs))
+			.setIsDrawIndirectArgs(true)
+			.setCanHaveTypedViews(true)
+			.setStructStride(sizeof(IndirectArgs))
+			.setCanHaveUAVs(true)
+			.setInitialState(nvrhi::ResourceStates::IndirectArgument)
+			.setKeepInitialState(true)
+			.setDebugName("CBT_IndirectArgs");
+		m_IndirectArgsBuffer = device->createBuffer(bufferDesc);
+
+		uint nodeCount = static_cast<uint>(cbt_NodeCount(cbt));
+
+		IndirectArgs initialIndirectArgs;
+		initialIndirectArgs.dispatchArgs.groupsX = nodeCount;
+		initialIndirectArgs.drawArgs.vertexCount = 3;
+		initialIndirectArgs.drawArgs.instanceCount = nodeCount;
+		commandList->writeBuffer(m_IndirectArgsBuffer, &initialIndirectArgs, sizeof(initialIndirectArgs));
+	}
+
 
 	cbt_Release(cbt);
 }

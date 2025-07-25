@@ -269,21 +269,15 @@ void RenderTerrainView(
 		pass.SetupPipeline(passContext, drawItem->cullMode, state);
 		pass.SetupBindings(passContext, drawItem->buffers, drawItem->terrainView, state);
 
+		state.indirectParams = drawItem->terrainView->GetIndirectArgsBuffer();
+
 		commandList->setGraphicsState(state);
 
 		TerrainPushConstants constants{};
 		constants.startInstanceLocation = drawItem->instance->GetInstanceIndex();
 
 		commandList->setPushConstants(&constants, sizeof(constants));
-
-		nvrhi::DrawArguments args;
-		args.vertexCount = 3;
-		args.instanceCount = drawItem->terrainView->GetNodeCount();
-		args.startVertexLocation = 0;
-		args.startIndexLocation = 0;
-		args.startInstanceLocation = 0;
-
-		commandList->draw(args);
+		commandList->drawIndirect(drawItem->terrainView->GetIndirectArgsDrawOffset());
 	}
 
 	commandList->endMarker();

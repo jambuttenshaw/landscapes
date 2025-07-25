@@ -31,7 +31,10 @@ public:
 	[[nodiscard]] inline const TerrainMeshInfo* GetParent() const { return m_Parent; }
 	[[nodiscard]] inline nvrhi::IBuffer* GetCBTBuffer() const { return m_CBTBuffer; }
 	[[nodiscard]] inline uint GetMaxDepth() const { return m_MaxDepth; }
-	[[nodiscard]] inline uint GetNodeCount() const { return m_NodeCount; }
+
+	[[nodiscard]] inline nvrhi::IBuffer* GetIndirectArgsBuffer() const { return m_IndirectArgsBuffer; }
+	[[nodiscard]] inline uint GetIndirectArgsDispatchOffset() const { return 0; }
+	[[nodiscard]] inline uint GetIndirectArgsDrawOffset() const { return sizeof(nvrhi::DispatchIndirectArguments); }
 
 protected:
 	const TerrainMeshInfo* m_Parent;
@@ -40,9 +43,7 @@ protected:
 	uint m_MaxDepth = 8;
 	uint m_InitDepth = 1;
 	nvrhi::BufferHandle m_CBTBuffer;
-
-	// TODO: temporary until indirect dispatch is implemented
-	uint m_NodeCount = -1;
+	nvrhi::BufferHandle m_IndirectArgsBuffer;
 };
 
 
