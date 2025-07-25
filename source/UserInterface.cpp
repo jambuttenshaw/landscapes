@@ -23,6 +23,7 @@ void UIRenderer::buildUI()
 	{
 		const char* modes[] = {
 			"Lit",
+			"Unlit",
 			"Normals"
 		};
 		int currentItem = static_cast<int>(m_UI.ViewMode);

@@ -14,11 +14,10 @@
 #include "UserInterface.h"
 #include "LandscapesScene.h"
 
-#include "passes/GBufferVisualizationPass.h"
-#include "passes/TerrainPass.h"
-//#include "passes/TerrainTessellationPass.h"
-
 #include "engine/ViewEx.h"
+#include "render/Passes/GBufferVisualizationPass.h"
+#include "render/Passes/TerrainPass.h"
+#include "terrain/TerrainTessellationPass.h"
 
 
 extern const char* g_WindowTitle;

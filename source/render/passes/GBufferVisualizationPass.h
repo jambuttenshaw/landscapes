@@ -20,7 +20,19 @@ namespace donut::engine
 class GBufferVisualizationPass
 {
 public:
-	GBufferVisualizationPass(nvrhi::IDevice* device, std::shared_ptr<donut::engine::CommonRenderPasses> commonPasses);
+
+    enum VisualizationMode : int8_t
+    {
+        VisualizationMode_None = -1,
+
+	    VisualizationMode_Unlit,
+        VisualizationMode_Normals,
+
+        VisualizationMode_COUNT
+    };
+
+public:
+	GBufferVisualizationPass(nvrhi::IDevice* device);
     virtual ~GBufferVisualizationPass() = default;
 
 	void Init(const std::shared_ptr<donut::engine::ShaderFactory>& shaderFactory);
@@ -29,22 +41,17 @@ public:
         nvrhi::ICommandList* commandList,
         const donut::engine::IView& view,
         const donut::render::GBufferRenderTargets& gbuffer,
+        VisualizationMode mode,
         nvrhi::ITexture* output);
 
     void ResetBindingCache();
 
-protected:
-
-    virtual nvrhi::ShaderHandle CreateComputeShader(donut::engine::ShaderFactory& shaderFactory);
-
 private:
     nvrhi::DeviceHandle m_Device;
 
-    nvrhi::ShaderHandle m_ComputeShader;
-    nvrhi::ComputePipelineHandle m_Pso;
+    std::array<nvrhi::ShaderHandle, VisualizationMode_COUNT> m_Shaders;
+    std::array<nvrhi::ComputePipelineHandle, VisualizationMode_COUNT> m_Pipelines;
 
     nvrhi::BindingLayoutHandle m_BindingLayout;
     donut::engine::BindingCache m_BindingSets;
-
-    std::shared_ptr<donut::engine::CommonRenderPasses> m_CommonPasses;
 };

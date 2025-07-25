@@ -1,15 +1,14 @@
 #include "LandscapesApplication.h"
 
-#include <donut/engine/ShaderFactory.h>
 #include <nvrhi/utils.h>
 
 #include <donut/render/DrawStrategy.h>
-#include <donut/render/GeometryPasses.h>
 
+#include <donut/engine/ShaderFactory.h>
 #include <donut/engine/CommonRenderPasses.h>
 #include <donut/engine/FramebufferFactory.h>
 
-#include "passes/TerrainDrawStrategy.h"
+#include "render/TerrainDrawStrategy.h"
 
 using namespace donut;
 using namespace donut::math;
@@ -43,7 +42,7 @@ bool LandscapesApplication::Init()
     m_DeferredLightingPass = std::make_unique<render::DeferredLightingPass>(GetDevice(), m_CommonPasses);
     m_DeferredLightingPass->Init(m_ShaderFactory);
 
-    m_GBufferVisualizationPass = std::make_unique<GBufferVisualizationPass>(GetDevice(), m_CommonPasses);
+    m_GBufferVisualizationPass = std::make_unique<GBufferVisualizationPass>(GetDevice());
     m_GBufferVisualizationPass->Init(m_ShaderFactory);
 
     //m_TerrainTessellator = std::make_unique<TerrainTessellationPass>(GetDevice());
@@ -203,9 +202,16 @@ void LandscapesApplication::Render(nvrhi::IFramebuffer* framebuffer)
     m_DeferredLightingPass->Render(m_CommandList, m_View, deferredInputs);
 
     // Debug view modes
-    if (m_UI.ViewMode == ViewModes::Normals)
+    switch(m_UI.ViewMode)
     {
-		m_GBufferVisualizationPass->Render(m_CommandList, m_View, *m_GBuffer, m_ShadedColour);
+	case ViewModes::Unlit:
+		m_GBufferVisualizationPass->Render(m_CommandList, m_View, *m_GBuffer, GBufferVisualizationPass::VisualizationMode_Unlit, m_ShadedColour);
+        break;
+	case ViewModes::Normals:
+		m_GBufferVisualizationPass->Render(m_CommandList, m_View, *m_GBuffer, GBufferVisualizationPass::VisualizationMode_Normals, m_ShadedColour);
+        break;
+    default:
+        break;
     }
 
     m_CommonPasses->BlitTexture(m_CommandList, framebuffer, m_ShadedColour, m_BindingCache.get());

@@ -13,8 +13,8 @@ float3 GetTerrainNormal(float2 texCoord)
 
     float2 leftTex = texCoord - texelOffset.xz;
     float2 rightTex = texCoord + texelOffset.xz;
-    float2 topTex = texCoord - texelOffset.zy;
-    float2 bottomTex = texCoord + texelOffset.zy;
+    float2 topTex = texCoord + texelOffset.zy;
+    float2 bottomTex = texCoord - texelOffset.zy;
 
     float leftHeight = GetTerrainHeight(leftTex);
     float rightHeight = GetTerrainHeight(rightTex);

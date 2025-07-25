@@ -1,7 +1,8 @@
 #include "Terrain.h"
 
+#include <nvrhi/utils.h>
+
 #include "engine/SceneGraphEx.h"
-#include "nvrhi/utils.h"
 
 #define CBT_IMPLEMENTATION
 #include "libcbt/cbt.h"

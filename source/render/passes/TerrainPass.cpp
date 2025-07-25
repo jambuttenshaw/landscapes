@@ -5,8 +5,8 @@
 #include <donut/engine/ShaderFactory.h>
 #include <nvrhi/utils.h>
 
-#include "TerrainDrawStrategy.h"
-#include "../terrain/Terrain.h"
+#include "render/TerrainDrawStrategy.h"
+#include "terrain/Terrain.h"
 
 using namespace donut;
 using namespace math;

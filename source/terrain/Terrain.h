@@ -10,7 +10,7 @@ using namespace donut::math;
 
 // Primary = camera view
 // Secondary = e.g. view from light source
-// Each view requires its own tessellation scheme and mesh
+// Each view requires its own tessellation scheme and therefore own mesh
 enum TerrainViewType : uint8_t
 {
 	TerrainViewType_Primary = 0,
@@ -73,12 +73,15 @@ public:
 
 	[[nodiscard]] inline float2 GetExtents() const { return m_HeightmapExtents; }
 	[[nodiscard]] inline float GetHeightScale() const { return m_HeightmapHeightScale; }
+
+	[[nodiscard]] inline size_t GetNumTerrainViews() const { return m_TerrainViews.size(); }
 	[[nodiscard]] inline const TerrainMeshView* GetTerrainView(size_t viewIndex) const { return &m_TerrainViews.at(viewIndex); }
+
 	[[nodiscard]] nvrhi::TextureHandle GetHeightmapTexture() const { return m_HeightmapTexture; }
 	[[nodiscard]] nvrhi::BufferHandle GetConstantBuffer() const { return m_TerrainCB; }
 
 private:
-	// The width and height of the entire terrain
+	// The width and height of the entire terrain in real-world units, e.g. meters
 	float2 m_HeightmapExtents;
 	float m_HeightmapHeightScale = 1.;
 	// The number of pixels in the heightmap
