@@ -24,7 +24,7 @@ class TerrainMeshInfo;
 class TerrainMeshView
 {
 public:
-	explicit TerrainMeshView(const TerrainMeshInfo* parent, TerrainViewType viewType, uint maxDepth);
+	explicit TerrainMeshView(const TerrainMeshInfo* parent, TerrainViewType viewType, uint maxDepth, uint initDepth);
 
 	void Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandList);
 
@@ -38,6 +38,7 @@ protected:
 	TerrainViewType m_ViewType;
 
 	uint m_MaxDepth = 8;
+	uint m_InitDepth = 1;
 	nvrhi::BufferHandle m_CBTBuffer;
 
 	// TODO: temporary until indirect dispatch is implemented

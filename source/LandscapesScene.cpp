@@ -28,6 +28,7 @@ bool LandscapesScene::Init(nvrhi::ICommandList* commandList, donut::engine::Text
     m_SceneGraph = std::make_shared<engine::SceneGraph>();
     auto rootNode = std::make_shared<engine::SceneGraphNode>();
     m_SceneGraph->SetRootNode(rootNode);
+    rootNode->SetName("Root");
 
     {
         TerrainMeshInfo::CreateParams createParams{};
@@ -35,7 +36,8 @@ bool LandscapesScene::Init(nvrhi::ICommandList* commandList, donut::engine::Text
         createParams.HeightmapExtents = { 262.28f, 262.28f };
         createParams.HeightmapHeightScale = 155.23f;
         createParams.HeightmapTexturePath = app::GetDirectoryWithExecutable().parent_path() / "media/test_heightmap.png";
-
+        createParams.CBTMaxDepth = 27;
+        createParams.CBTInitDepth = 16;
         m_Terrain = std::make_shared<TerrainMeshInfo>(m_Device, commandList, textureCache, createParams);
 
         auto terrainNode = std::make_shared<engine::SceneGraphNode>();
@@ -56,10 +58,6 @@ bool LandscapesScene::Init(nvrhi::ICommandList* commandList, donut::engine::Text
     m_SunLight->angularSize = 0.53f;
     m_SunLight->irradiance = 1.f;
     m_SunLight->SetName("Sun");
-
-    m_SceneGraph->Refresh(0);
-
-    PrintSceneGraph(m_SceneGraph->GetRootNode());
 
     return true;
 }

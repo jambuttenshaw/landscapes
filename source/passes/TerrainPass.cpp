@@ -158,7 +158,7 @@ nvrhi::BindingLayoutHandle TerrainGBufferFillPass::CreateTerrainBindingLayout()
 		.setVisibility(nvrhi::ShaderType::Vertex | nvrhi::ShaderType::Pixel)
 		.setRegisterSpace(GBUFFER_SPACE_TERRAIN)
 		.setRegisterSpaceIsDescriptorSet(true)
-		.addItem(nvrhi::BindingLayoutItem::VolatileConstantBuffer(GBUFFER_BINDING_TERRAIN_CONSTANTS))
+		.addItem(nvrhi::BindingLayoutItem::ConstantBuffer(GBUFFER_BINDING_TERRAIN_CONSTANTS))
 		.addItem(nvrhi::BindingLayoutItem::StructuredBuffer_SRV(GBUFFER_BINDING_TERRAIN_CBT))
 		.addItem(nvrhi::BindingLayoutItem::Texture_SRV(GBUFFER_BINDING_TERRAIN_HEIGHTMAP_TEXTURE));
 
@@ -245,6 +245,8 @@ void RenderTerrainView(
 	ITerrainPass& pass,
 	TerrainPassContext& passContext)
 {
+	commandList->beginMarker("Render Terrain View");
+
 	drawStrategy.PrepareForView(rootNode, *view);
 
 	pass.SetupView(passContext, commandList, view, viewPrev);
@@ -283,4 +285,6 @@ void RenderTerrainView(
 
 		commandList->draw(args);
 	}
+
+	commandList->endMarker();
 }

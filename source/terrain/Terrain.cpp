@@ -11,16 +11,17 @@ using namespace donut::math;
 
 #include "TerrainShaders.h"
 
-TerrainMeshView::TerrainMeshView(const TerrainMeshInfo* parent, TerrainViewType viewType, uint maxDepth)
+TerrainMeshView::TerrainMeshView(const TerrainMeshInfo* parent, TerrainViewType viewType, uint maxDepth, uint initDepth)
 	: m_Parent(parent)
 	, m_ViewType(viewType)
 	, m_MaxDepth(maxDepth)
+	, m_InitDepth(initDepth)
 {
 }
 
 void TerrainMeshView::Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandList)
 {
-	cbt_Tree* cbt = cbt_CreateAtDepth(m_MaxDepth, 6);
+	cbt_Tree* cbt = cbt_CreateAtDepth(m_MaxDepth, m_InitDepth);
 
 	nvrhi::BufferDesc bufferDesc;
 	bufferDesc.setByteSize(cbt_HeapByteSize(cbt))
@@ -93,7 +94,7 @@ TerrainMeshInfo::TerrainMeshInfo(nvrhi::IDevice* device, nvrhi::ICommandList* co
 
 	// Create views
 	{
-		m_TerrainViews.emplace_back(this, TerrainViewType_Primary, params.CBTMaxDepth)
+		m_TerrainViews.emplace_back(this, TerrainViewType_Primary, params.CBTMaxDepth, params.CBTInitDepth)
 			.Init(device, commandList);
 	}
 

@@ -51,7 +51,7 @@ bool LandscapesApplication::Init()
 
     m_CommandList = GetDevice()->createCommandList();
 
-    m_Camera.LookTo(float3{ 0.0f, 150.0f, 0.0f }, float3{ 0.0f, 0.0f, 1.0f });
+    m_Camera.LookAt(float3{ 0.0f, 150.0f, 0.0f }, float3{ 0.0f, 0.f, 0.0f }, float3{ 0.0f, 0.0f, 1.0f });
     m_Camera.SetMoveSpeed(25.0f);
 
     m_CommandList->open();
@@ -179,6 +179,7 @@ void LandscapesApplication::Render(nvrhi::IFramebuffer* framebuffer)
     {
         TerrainDrawStrategy drawStrategy;
         TerrainGBufferFillPass::Context context;
+        context.wireframe = m_UI.Wireframe;
 
         RenderTerrainView(
             m_CommandList,
