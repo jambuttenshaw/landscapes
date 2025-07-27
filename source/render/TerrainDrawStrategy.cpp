@@ -32,15 +32,12 @@ void TerrainDrawStrategy::PrepareForView(const std::shared_ptr<donut::engine::Sc
 					drawItem.instance = terrainInstance;
 					drawItem.mesh = terrainInstance->GetMesh().get();
 					drawItem.geometry = nullptr; // is generated dynamically from the CBT
-					drawItem.material = nullptr; // TODO (multiple materials will be required)
+					drawItem.material = nullptr; // TODO: (multiple materials will be required)
 					drawItem.buffers = drawItem.mesh->buffers.get();
 					drawItem.distanceToCamera = 0;
 					drawItem.cullMode = nvrhi::RasterCullMode::None;
 
-					TerrainViewType terrainViewType = viewEx.IsPrimaryView() ? TerrainViewType_Primary : TerrainViewType_Secondary;
-					// TODO: Proper calculation of terrain view index from type
-					size_t index = terrainViewType == TerrainViewType_Primary ? 0 : 1;
-					drawItem.terrainView = terrainInstance->GetTerrain()->GetTerrainView(index);
+					drawItem.terrainView = terrainInstance->GetTerrain()->GetTerrainView(viewEx.GetTerrainViewIndex());
 				}
 			}
 		}

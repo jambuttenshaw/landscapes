@@ -12,9 +12,8 @@ using namespace donut::math;
 
 #include "TerrainShaders.h"
 
-TerrainMeshView::TerrainMeshView(const TerrainMeshInfo* parent, TerrainViewType viewType, uint maxDepth, uint initDepth)
+TerrainMeshView::TerrainMeshView(const TerrainMeshInfo* parent, uint maxDepth, uint initDepth)
 	: m_Parent(parent)
-	, m_ViewType(viewType)
 	, m_MaxDepth(maxDepth)
 	, m_InitDepth(initDepth)
 {
@@ -122,8 +121,10 @@ TerrainMeshInfo::TerrainMeshInfo(nvrhi::IDevice* device, nvrhi::ICommandList* co
 	}
 
 	// Create views
+	assert(!params.Views.empty());
+	for (const auto& view : params.Views)
 	{
-		m_TerrainViews.emplace_back(this, TerrainViewType_Primary, params.CBTMaxDepth, params.CBTInitDepth)
+		m_TerrainViews.emplace_back(this, view.MaxDepth, view.InitDepth)
 			.Init(device, commandList);
 	}
 

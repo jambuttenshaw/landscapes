@@ -17,9 +17,9 @@ enum class ViewModes : uint8_t
 // Data shared between the application layer and the user interface layer
 struct UIData
 {
-	ViewModes ViewMode = ViewModes::Normals;
+	ViewModes ViewMode = ViewModes::Unlit;
 
-	bool Wireframe = false;
+	bool Wireframe = true;
 	bool BackFaceCulling = true;
 
 	bool UpdateTerrain = true;

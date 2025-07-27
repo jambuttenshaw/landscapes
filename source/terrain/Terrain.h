@@ -8,23 +8,13 @@
 
 using namespace donut::math;
 
-// Primary = camera view
-// Secondary = e.g. view from light source
-// Each view requires its own tessellation scheme and therefore own mesh
-enum TerrainViewType : uint8_t
-{
-	TerrainViewType_Primary = 0,
-	TerrainViewType_Secondary,
-	TerrainViewType_Count
-};
-
 
 class TerrainMeshInfo;
 
 class TerrainMeshView
 {
 public:
-	explicit TerrainMeshView(const TerrainMeshInfo* parent, TerrainViewType viewType, uint maxDepth, uint initDepth);
+	explicit TerrainMeshView(const TerrainMeshInfo* parent, uint maxDepth, uint initDepth);
 
 	void Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandList);
 
@@ -38,7 +28,6 @@ public:
 
 protected:
 	const TerrainMeshInfo* m_Parent;
-	TerrainViewType m_ViewType;
 
 	uint m_MaxDepth = 8;
 	uint m_InitDepth = 1;
@@ -50,6 +39,11 @@ protected:
 class TerrainMeshInfo : public donut::engine::MeshInfo
 {
 public:
+	struct CBTDesc
+	{
+		uint MaxDepth = 8;
+		uint InitDepth = 1;
+	};
 	struct CreateParams
 	{
 		// Heightmap parameters
@@ -58,9 +52,8 @@ public:
 		float HeightmapHeightScale = 100.0f;
 		std::filesystem::path HeightmapTexturePath;
 
-		// terrain mesh parameters
-		uint CBTMaxDepth = 8;
-		uint CBTInitDepth = 1;
+		// Mesh view descriptions
+		std::vector<CBTDesc> Views;
 	};
 
 	TerrainMeshInfo(

@@ -50,7 +50,7 @@ bool LandscapesApplication::Init()
 
     m_CommandList = GetDevice()->createCommandList();
 
-    m_Camera.LookAt(float3{ 0.0f, 150.0f, 0.0f }, float3{ 0.0f, 0.f, 0.0f }, float3{ 0.0f, 0.0f, 1.0f });
+    m_Camera.LookAt(float3{ 0.0f, 250.0f, 0.0f }, float3{ 0.0f, 0.f, 0.0f }, float3{ 0.0f, 0.0f, 1.0f });
     m_Camera.SetMoveSpeed(25.0f);
 
     m_CommandList->open();

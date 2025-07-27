@@ -8,11 +8,10 @@ class PlanarViewEx : public donut::engine::PlanarView
 {
 public:
 
-	inline void SetLightView(bool isLightView) { m_IsLightView = isLightView; }
+	inline void SetTerrainViewIndex(size_t index) { m_TerrainViewIndex = index; }
 
-	[[nodiscard]] inline bool IsPrimaryView() const { return !m_IsLightView; }
-	[[nodiscard]] inline bool IsLightView() const { return m_IsLightView; }
+	[[nodiscard]] inline size_t GetTerrainViewIndex() const { return m_TerrainViewIndex; }
 
 protected:
-	bool m_IsLightView = false;
+	size_t m_TerrainViewIndex = 0;
 };
