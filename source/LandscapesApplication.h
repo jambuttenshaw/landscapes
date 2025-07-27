@@ -17,7 +17,7 @@
 #include "engine/ViewEx.h"
 #include "render/Passes/GBufferVisualizationPass.h"
 #include "render/Passes/TerrainPass.h"
-#include "terrain/TerrainTessellationPass.h"
+#include "terrain/TerrainTessellation.h"
 
 
 extern const char* g_WindowTitle;
@@ -50,8 +50,6 @@ private:
 	void CreateDeferredShadingOutput(nvrhi::IDevice* device, dm::uint2 size, dm::uint sampleCount);
 	void CreateGBufferPasses();
 
-	inline nvrhi::RasterCullMode GetCullMode() const { return m_UI.BackFaceCulling ? nvrhi::RasterCullMode::Back : nvrhi::RasterCullMode::None; }
-
 private:
 	UIData& m_UI;
 
@@ -66,7 +64,7 @@ private:
 	std::shared_ptr<donut::render::GBufferRenderTargets> m_GBuffer;
 	nvrhi::TextureHandle m_ShadedColour;
 
-	//std::unique_ptr<TerrainTessellationPass> m_TerrainTessellator;
+	std::unique_ptr<TerrainTessellator> m_TerrainTessellator;
 
 	std::unique_ptr<donut::render::GBufferFillPass> m_GBufferPass;
 	std::unique_ptr<TerrainGBufferFillPass> m_TerrainGBufferPass;

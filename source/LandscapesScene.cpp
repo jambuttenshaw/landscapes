@@ -46,8 +46,6 @@ bool LandscapesScene::Init(nvrhi::ICommandList* commandList, donut::engine::Text
         m_TerrainInstance = std::make_shared<TerrainMeshInstance>(m_Terrain);
         terrainNode->SetLeaf(m_TerrainInstance);
         m_TerrainInstance->SetName("TerrainMeshInstance");
-
-        m_UI.TerrainHeight = m_Terrain->GetHeightScale();
     }
 
     m_SunLight = std::make_shared<engine::DirectionalLight>();
@@ -64,8 +62,6 @@ bool LandscapesScene::Init(nvrhi::ICommandList* commandList, donut::engine::Text
 void LandscapesScene::Animate(float deltaTime)
 {
     m_SunLight->SetDirection(static_cast<double3>(m_UI.LightDirection));
-
-    m_Terrain->SetHeightScale(m_UI.TerrainHeight);
 }
 
 void LandscapesScene::Refresh(nvrhi::ICommandList* commandList, uint frameIndex)

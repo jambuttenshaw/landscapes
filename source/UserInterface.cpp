@@ -34,15 +34,11 @@ void UIRenderer::buildUI()
 	ImGui::Separator();
 
 	ImGui::Checkbox("Wireframe", &m_UI.Wireframe);
-	ImGui::Checkbox("Backface Culling", &m_UI.BackFaceCulling);
 
 	ImGui::Separator();
 
 	ImGui::Checkbox("Draw Terrain", &m_UI.DrawTerrain);
-	ImGui::Checkbox("Draw Objects", &m_UI.DrawObjects);
-
-	ImGui::SliderInt("Terrain LOD", &m_UI.TerrainLOD, 0, 9);
-	ImGui::DragFloat("Terrain Height", &m_UI.TerrainHeight, 1.0f, 0.0f, 1000.0f);
+	ImGui::Checkbox("Update Terrain", &m_UI.UpdateTerrain);
 
 	ImGui::Separator();
 

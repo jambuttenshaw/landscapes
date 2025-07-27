@@ -20,15 +20,9 @@ struct UIData
 	ViewModes ViewMode = ViewModes::Unlit;
 
 	bool Wireframe = true;
-	bool BackFaceCulling = true;
 
 	bool UpdateTerrain = true;
 	bool DrawTerrain = true;
-
-	bool DrawObjects = false;
-
-	int TerrainLOD = 0;
-	float TerrainHeight = 1.0f;
 
 	donut::math::float3 CameraPosition;
 	donut::math::float3 LightDirection;

@@ -63,8 +63,6 @@ public:
 		const CreateParams& params
 	);
 
-	inline void SetHeightScale(float scale) { m_HeightmapHeightScale = scale; }
-
 	[[nodiscard]] inline float2 GetExtents() const { return m_HeightmapExtents; }
 	[[nodiscard]] inline float GetHeightScale() const { return m_HeightmapHeightScale; }
 

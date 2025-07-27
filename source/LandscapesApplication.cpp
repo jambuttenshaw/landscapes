@@ -45,8 +45,8 @@ bool LandscapesApplication::Init()
     m_GBufferVisualizationPass = std::make_unique<GBufferVisualizationPass>(GetDevice());
     m_GBufferVisualizationPass->Init(m_ShaderFactory);
 
-    //m_TerrainTessellator = std::make_unique<TerrainTessellationPass>(GetDevice());
-    //m_TerrainTessellator->Init(*m_ShaderFactory);
+    m_TerrainTessellator = std::make_unique<TerrainTessellator>(GetDevice());
+    m_TerrainTessellator->Init(*m_ShaderFactory);
 
     m_CommandList = GetDevice()->createCommandList();
 
@@ -171,7 +171,15 @@ void LandscapesApplication::Render(nvrhi::IFramebuffer* framebuffer)
     // Update terrain
     if (m_UI.UpdateTerrain)
 	{
-	    
+        PrimaryViewTerrainTessellationPass tessellationPass;
+        const auto& terrain = m_Scene.GetTerrain();
+
+        m_TerrainTessellator->ExecutePassForTerrainView(
+            m_CommandList,
+            &m_View,
+            tessellationPass,
+            terrain->GetTerrainView(0)
+        );
     }
     // Draw terrain
     if (m_UI.DrawTerrain)
