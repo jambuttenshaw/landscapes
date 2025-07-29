@@ -6,6 +6,12 @@
 #include "TerrainShaders.h"
 
 
+ITerrainTessellationPass::ITerrainTessellationPass(nvrhi::DeviceHandle device)
+	: m_Device(std::move(device))
+{
+}
+
+
 TerrainTessellator::TerrainTessellator(nvrhi::DeviceHandle device)
 	: m_Device(std::move(device))
 {
@@ -76,7 +82,11 @@ void TerrainTessellator::ExecutePassForTerrainView(
 	const ITerrainTessellationPass& pass,
 	const TerrainMeshView* terrainView)
 {
-	auto& bindings = m_BindingSets[terrainView];
+	pass.SetupView(view);
+
+	auto& cachedData = m_TerrainCache[terrainView];
+	auto& bindings = cachedData.bindings;
+
 	// Create binding sets if there are none for this terrain view
 	if (!bindings[Bindings_CBTReadOnly] || !bindings[Bindings_CBTReadWrite])
 	{
@@ -109,7 +119,21 @@ void TerrainTessellator::ExecutePassForTerrainView(
 
 	// Execute (indirectly) the tessellation pass
 	{
+		commandList->beginMarker("Subdivision");
 
+		nvrhi::ComputeState state;
+
+		if (cachedData.split)
+			pass.SetupSplitState(terrainView, state);
+		else
+			pass.SetupMergeState(terrainView, state);
+
+		state.indirectParams = terrainView->GetIndirectArgsBuffer();
+		commandList->dispatchIndirect(terrainView->GetIndirectArgsDispatchOffset());
+
+		cachedData.split = !cachedData.split;
+
+		commandList->endMarker();
 	}
 
 	// Run sum reduction
@@ -171,4 +195,78 @@ void TerrainTessellator::ExecutePassForTerrainView(
 		commandList->dispatch(1);
 		commandList->endMarker();
 	}
+}
+
+
+PrimaryViewTerrainTessellationPass::PrimaryViewTerrainTessellationPass(nvrhi::DeviceHandle device)
+	: ITerrainTessellationPass(std::move(device))
+{
+}
+
+void PrimaryViewTerrainTessellationPass::Init(donut::engine::ShaderFactory& shaderFactory)
+{
+	m_SplitShader = shaderFactory.CreateAutoShader("app/terrain/tessellation/Subdivision.hlsl", "split_cs",
+		DONUT_MAKE_PLATFORM_SHADER(g_terrain_tessellation_split_cs), nullptr, nvrhi::ShaderType::Compute);
+	m_MergeShader = shaderFactory.CreateAutoShader("app/terrain/tessellation/Subdivision.hlsl", "merge_cs",
+		DONUT_MAKE_PLATFORM_SHADER(g_terrain_tessellation_merge_cs), nullptr, nvrhi::ShaderType::Compute);
+
+	{
+		nvrhi::BindingLayoutDesc layoutDesc;
+		layoutDesc.setVisibility(nvrhi::ShaderType::Compute)
+			.setRegisterSpaceIsDescriptorSet(true)
+			.setRegisterSpace(TESSELLATION_SPACE_CBT)
+			.addItem(nvrhi::BindingLayoutItem::PushConstants(TESSELLATION_BINDING_PUSH_CONSTANTS, sizeof(TessellationSubdivisionPushConstants)))
+			.addItem(nvrhi::BindingLayoutItem::StructuredBuffer_UAV(TESSELLATION_BINDING_CBT));
+
+		m_BindingLayout = m_Device->createBindingLayout(layoutDesc);
+	}
+
+	{
+		nvrhi::ComputePipelineDesc psoDesc;
+		psoDesc.addBindingLayout(m_BindingLayout);
+
+		psoDesc.setComputeShader(m_SplitShader);
+		m_SplitShader = m_Device->createComputePipeline(psoDesc);
+
+		psoDesc.setComputeShader(m_MergeShader);
+		m_MergePipeline = m_Device->createComputePipeline(psoDesc);
+	}
+}
+
+void PrimaryViewTerrainTessellationPass::SetupView(const donut::engine::IView* view)
+{
+	
+}
+
+void PrimaryViewTerrainTessellationPass::SetupSplitState(const TerrainMeshView* terrainView, nvrhi::ComputeState& state)
+{
+	state.bindings = { FindOrCreateBindingSet(terrainView) };
+	state.pipeline = m_SplitPipeline;
+}
+
+void PrimaryViewTerrainTessellationPass::SetupMergeState(const TerrainMeshView* terrainView, nvrhi::ComputeState& state)
+{
+	state.bindings = { FindOrCreateBindingSet(terrainView) };
+	state.pipeline = m_MergePipeline;
+}
+
+void PrimaryViewTerrainTessellationPass::SetupPushConstants()
+{
+	
+}
+
+nvrhi::BindingSetHandle PrimaryViewTerrainTessellationPass::FindOrCreateBindingSet(const TerrainMeshView* key)
+{
+	nvrhi::BindingSetHandle bindingSet = m_BindingSets[key];
+	if (!bindingSet)
+	{
+		nvrhi::BindingSetDesc setDesc;
+		setDesc.addItem(nvrhi::BindingSetItem::PushConstants(TESSELLATION_BINDING_PUSH_CONSTANTS, sizeof(TessellationSubdivisionPushConstants)))
+			.addItem(nvrhi::BindingSetItem::StructuredBuffer_SRV(TESSELLATION_BINDING_CBT, key->GetCBTBuffer()));
+
+		m_Device->createBindingSet(setDesc, m_BindingLayout);
+
+		m_BindingSets[key] = bindingSet;
+	}
+	return bindingSet;
 }

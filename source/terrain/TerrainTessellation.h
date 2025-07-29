@@ -10,13 +10,18 @@ class TerrainMeshView;
 class ITerrainTessellationPass
 {
 public:
+    ITerrainTessellationPass(nvrhi::DeviceHandle device);
     virtual ~ITerrainTessellationPass() = default;
 
-    // TODO: These should just set up compute state, not actually submit commands
-    // TODO: This lets the terrain tessellator remain in control of HOW work is submitted,
-    // TODO: but the pass will determine WHAT work is performed
-    virtual void ExecuteSplitPipeline() const = 0;
-    virtual void ExecuteMergePipeline() const = 0;
+    virtual void Init(donut::engine::ShaderFactory& shaderFactory) = 0;
+
+    virtual void SetupView(const donut::engine::IView* view) = 0;
+    virtual void SetupSplitState(const TerrainMeshView* terrainView, nvrhi::ComputeState& state) = 0;
+    virtual void SetupMergeState(const TerrainMeshView* terrainView, nvrhi::ComputeState& state) = 0;
+    virtual void SetupPushConstants() = 0;
+
+protected:
+    nvrhi::DeviceHandle m_Device;
 };
 
 class TerrainTessellator
@@ -58,13 +63,36 @@ protected:
     };
     std::array<nvrhi::BindingLayoutHandle, Bindings_Count> m_BindingLayouts{};
 
-    std::unordered_map<const TerrainMeshView*, std::array<nvrhi::BindingSetHandle, Bindings_Count>> m_BindingSets;
+    // The tessellator requires some persistent state for each terrain mesh view
+    struct TerrainCachedData
+    {
+        bool split = true; // flip-flops between slipping and merging
+        std::array<nvrhi::BindingSetHandle, Bindings_Count> bindings;
+    };
+    std::unordered_map<const TerrainMeshView*, TerrainCachedData> m_TerrainCache;
 };
 
 
 class PrimaryViewTerrainTessellationPass : public ITerrainTessellationPass
 {
 public:
-    virtual void ExecuteSplitPipeline() const override {}
-    void ExecuteMergePipeline() const override {}
+    PrimaryViewTerrainTessellationPass(nvrhi::DeviceHandle device);
+
+    void Init(donut::engine::ShaderFactory& shaderFactory) override;
+
+    virtual void SetupView(const donut::engine::IView* view) override;
+    virtual void SetupSplitState(const TerrainMeshView* terrainView, nvrhi::ComputeState& state) override;
+    virtual void SetupMergeState(const TerrainMeshView* terrainView, nvrhi::ComputeState& state) override;
+    virtual void SetupPushConstants() override;
+
+private:
+    nvrhi::BindingSetHandle FindOrCreateBindingSet(const TerrainMeshView* key);
+
+private:
+    nvrhi::ShaderHandle m_SplitShader, m_MergeShader;
+    nvrhi::ComputePipelineHandle m_SplitPipeline, m_MergePipeline;
+
+    nvrhi::BindingLayoutHandle m_BindingLayout;
+
+    std::unordered_map<const TerrainMeshView*, nvrhi::BindingSetHandle> m_BindingSets;
 };

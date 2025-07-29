@@ -26,6 +26,10 @@ struct TerrainPushConstants
 	uint startInstanceLocation;
 };
 
+struct TessellationSubdivisionPushConstants
+{
+	float2 Target;
+};
 struct TessellationSumReductionPushConstants
 {
 	uint PassID;

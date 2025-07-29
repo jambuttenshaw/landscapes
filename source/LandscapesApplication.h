@@ -65,6 +65,7 @@ private:
 	nvrhi::TextureHandle m_ShadedColour;
 
 	std::unique_ptr<TerrainTessellator> m_TerrainTessellator;
+	std::unique_ptr<PrimaryViewTerrainTessellationPass> m_TessellationPass_PrimaryView;
 
 	std::unique_ptr<donut::render::GBufferFillPass> m_GBufferPass;
 	std::unique_ptr<TerrainGBufferFillPass> m_TerrainGBufferPass;

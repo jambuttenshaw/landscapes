@@ -48,6 +48,9 @@ bool LandscapesApplication::Init()
     m_TerrainTessellator = std::make_unique<TerrainTessellator>(GetDevice());
     m_TerrainTessellator->Init(*m_ShaderFactory);
 
+    m_TessellationPass_PrimaryView = std::make_unique<PrimaryViewTerrainTessellationPass>(GetDevice());
+    m_TessellationPass_PrimaryView->Init(*m_ShaderFactory);
+
     m_CommandList = GetDevice()->createCommandList();
 
     m_Camera.LookAt(float3{ 0.0f, 250.0f, 0.0f }, float3{ 0.0f, 0.f, 0.0f }, float3{ 0.0f, 0.0f, 1.0f });
@@ -171,13 +174,15 @@ void LandscapesApplication::Render(nvrhi::IFramebuffer* framebuffer)
     // Update terrain
     if (m_UI.UpdateTerrain)
 	{
-        PrimaryViewTerrainTessellationPass tessellationPass;
+        // TODO: Think about how I want to get references to the terrain
+        // Should terrain views keep track of which tessellation pass to use?
+        // Then I can walk the scene graph to find terrain views, and know what pass to use
         const auto& terrain = m_Scene.GetTerrain();
 
         m_TerrainTessellator->ExecutePassForTerrainView(
             m_CommandList,
             &m_View,
-            tessellationPass,
+            *m_TessellationPass_PrimaryView,
             terrain->GetTerrainView(0)
         );
     }
