@@ -79,7 +79,7 @@ void TerrainTessellator::Init(donut::engine::ShaderFactory& shaderFactory)
 void TerrainTessellator::ExecutePassForTerrainView(
 	nvrhi::ICommandList* commandList,
 	const donut::engine::IView* view,
-	const ITerrainTessellationPass& pass,
+	ITerrainTessellationPass& pass,
 	const TerrainMeshView* terrainView)
 {
 	pass.SetupView(view);
@@ -128,7 +128,11 @@ void TerrainTessellator::ExecutePassForTerrainView(
 		else
 			pass.SetupMergeState(terrainView, state);
 
-		state.indirectParams = terrainView->GetIndirectArgsBuffer();
+		state.setIndirectParams(terrainView->GetIndirectArgsBuffer());
+		commandList->setComputeState(state);
+
+		pass.SetupPushConstants(commandList);
+
 		commandList->dispatchIndirect(terrainView->GetIndirectArgsDispatchOffset());
 
 		cachedData.split = !cachedData.split;
@@ -226,7 +230,7 @@ void PrimaryViewTerrainTessellationPass::Init(donut::engine::ShaderFactory& shad
 		psoDesc.addBindingLayout(m_BindingLayout);
 
 		psoDesc.setComputeShader(m_SplitShader);
-		m_SplitShader = m_Device->createComputePipeline(psoDesc);
+		m_SplitPipeline = m_Device->createComputePipeline(psoDesc);
 
 		psoDesc.setComputeShader(m_MergeShader);
 		m_MergePipeline = m_Device->createComputePipeline(psoDesc);
@@ -250,9 +254,11 @@ void PrimaryViewTerrainTessellationPass::SetupMergeState(const TerrainMeshView* 
 	state.pipeline = m_MergePipeline;
 }
 
-void PrimaryViewTerrainTessellationPass::SetupPushConstants()
+void PrimaryViewTerrainTessellationPass::SetupPushConstants(nvrhi::ICommandList* commandList)
 {
-	
+	TessellationSubdivisionPushConstants constants;
+	constants.Target = { 0.417f, 0.253f };
+	commandList->setPushConstants(&constants, sizeof(constants));
 }
 
 nvrhi::BindingSetHandle PrimaryViewTerrainTessellationPass::FindOrCreateBindingSet(const TerrainMeshView* key)
@@ -262,9 +268,9 @@ nvrhi::BindingSetHandle PrimaryViewTerrainTessellationPass::FindOrCreateBindingS
 	{
 		nvrhi::BindingSetDesc setDesc;
 		setDesc.addItem(nvrhi::BindingSetItem::PushConstants(TESSELLATION_BINDING_PUSH_CONSTANTS, sizeof(TessellationSubdivisionPushConstants)))
-			.addItem(nvrhi::BindingSetItem::StructuredBuffer_SRV(TESSELLATION_BINDING_CBT, key->GetCBTBuffer()));
+			.addItem(nvrhi::BindingSetItem::StructuredBuffer_UAV(TESSELLATION_BINDING_CBT, key->GetCBTBuffer()));
 
-		m_Device->createBindingSet(setDesc, m_BindingLayout);
+		bindingSet = m_Device->createBindingSet(setDesc, m_BindingLayout);
 
 		m_BindingSets[key] = bindingSet;
 	}

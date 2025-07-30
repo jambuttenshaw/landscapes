@@ -18,7 +18,7 @@ public:
     virtual void SetupView(const donut::engine::IView* view) = 0;
     virtual void SetupSplitState(const TerrainMeshView* terrainView, nvrhi::ComputeState& state) = 0;
     virtual void SetupMergeState(const TerrainMeshView* terrainView, nvrhi::ComputeState& state) = 0;
-    virtual void SetupPushConstants() = 0;
+    virtual void SetupPushConstants(nvrhi::ICommandList* commandList) = 0;
 
 protected:
     nvrhi::DeviceHandle m_Device;
@@ -34,7 +34,7 @@ public:
     void ExecutePassForTerrainView(
         nvrhi::ICommandList* commandList,
         const donut::engine::IView* view,
-        const ITerrainTessellationPass& pass,
+        ITerrainTessellationPass& pass,
         const TerrainMeshView* terrainView
     );
 
@@ -83,7 +83,7 @@ public:
     virtual void SetupView(const donut::engine::IView* view) override;
     virtual void SetupSplitState(const TerrainMeshView* terrainView, nvrhi::ComputeState& state) override;
     virtual void SetupMergeState(const TerrainMeshView* terrainView, nvrhi::ComputeState& state) override;
-    virtual void SetupPushConstants() override;
+    virtual void SetupPushConstants(nvrhi::ICommandList* commandList) override;
 
 private:
     nvrhi::BindingSetHandle FindOrCreateBindingSet(const TerrainMeshView* key);
