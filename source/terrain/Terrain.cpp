@@ -12,10 +12,10 @@ using namespace donut::math;
 
 #include "TerrainShaders.h"
 
-TerrainMeshView::TerrainMeshView(const TerrainMeshInfo* parent, uint maxDepth, uint initDepth)
-	: m_Parent(parent)
-	, m_MaxDepth(maxDepth)
-	, m_InitDepth(initDepth)
+TerrainMeshView::TerrainMeshView(const TerrainMeshInstance* instance, const TerrainMeshViewDesc& desc)
+	: m_Instance(instance)
+	, m_MaxDepth(desc.MaxDepth)
+	, m_InitDepth(desc.InitDepth)
 {
 }
 
@@ -69,37 +69,11 @@ void TerrainMeshView::Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandL
 }
 
 
-TerrainMeshInstance::TerrainMeshInstance(std::shared_ptr<TerrainMeshInfo> terrain)
-	: MeshInstance(std::move(terrain))
-{
-}
-
-box3 TerrainMeshInstance::GetLocalBoundingBox()
-{
-	float2 extents = Terrain().GetExtents();
-	float height = Terrain().GetHeightScale();
-
-	return {
-		{ -0.5f * extents.x,   0.0f, -0.5f * extents.y },
-		{  0.5f * extents.x, height,  0.5f * extents.y }
-	};
-}
-
-std::shared_ptr<engine::SceneGraphLeaf> TerrainMeshInstance::Clone()
-{
-	return std::make_shared<TerrainMeshInstance>(std::static_pointer_cast<TerrainMeshInfo>(m_Mesh));
-}
-
-engine::SceneContentFlags TerrainMeshInstance::GetContentFlags() const
-{
-	return static_cast<engine::SceneContentFlags>(SceneContentFlagsEx::Terrain);
-}
-
 TerrainMeshInfo::TerrainMeshInfo(nvrhi::IDevice* device, nvrhi::ICommandList* commandList, donut::engine::TextureCache* textureCache, const CreateParams& params)
+	: m_TerrainViews(params.Views)
 {
 	assert(device && commandList && textureCache);
 
-	// TODO: Sharing a buffer group with other terrain meshes would be ideal
 	buffers = std::make_shared<engine::BufferGroup>();
 
 	m_HeightmapExtents = params.HeightmapExtents;
@@ -121,12 +95,7 @@ TerrainMeshInfo::TerrainMeshInfo(nvrhi::IDevice* device, nvrhi::ICommandList* co
 	}
 
 	// Create views
-	assert(!params.Views.empty());
-	for (const auto& view : params.Views)
-	{
-		m_TerrainViews.emplace_back(this, view.MaxDepth, view.InitDepth)
-			.Init(device, commandList);
-	}
+	assert(!m_TerrainViews.empty());
 
 	// Create constant buffer
 	m_TerrainCB = device->createBuffer(nvrhi::utils::CreateStaticConstantBufferDesc(
@@ -141,4 +110,43 @@ TerrainMeshInfo::TerrainMeshInfo(nvrhi::IDevice* device, nvrhi::ICommandList* co
 	commandList->beginTrackingBufferState(m_TerrainCB, nvrhi::ResourceStates::CopyDest);
 	commandList->writeBuffer(m_TerrainCB, &terrainConstants, sizeof(terrainConstants));
 	commandList->setPermanentBufferState(m_TerrainCB, nvrhi::ResourceStates::ConstantBuffer);
+}
+
+
+TerrainMeshInstance::TerrainMeshInstance(std::shared_ptr<TerrainMeshInfo> terrain)
+	: MeshInstance(std::move(terrain))
+{
+	for (size_t view = 0; view < Terrain().GetNumTerrainViews(); view++)
+	{
+		m_TerrainViews.emplace_back(this, Terrain().GetTerrainViewDesc(view));
+	}
+}
+
+void TerrainMeshInstance::Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandList)
+{
+	for (auto& view : m_TerrainViews)
+	{
+		view.Init(device, commandList);
+	}
+}
+
+box3 TerrainMeshInstance::GetLocalBoundingBox()
+{
+	float2 extents = Terrain().GetExtents();
+	float height = Terrain().GetHeightScale();
+
+	return {
+		{ -0.5f * extents.x,   0.0f, -0.5f * extents.y },
+		{  0.5f * extents.x, height,  0.5f * extents.y }
+	};
+}
+
+std::shared_ptr<engine::SceneGraphLeaf> TerrainMeshInstance::Clone()
+{
+	return std::make_shared<TerrainMeshInstance>(std::static_pointer_cast<TerrainMeshInfo>(m_Mesh));
+}
+
+engine::SceneContentFlags TerrainMeshInstance::GetContentFlags() const
+{
+	return static_cast<engine::SceneContentFlags>(SceneContentFlagsEx::Terrain);
 }

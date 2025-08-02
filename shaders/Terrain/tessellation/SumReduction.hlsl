@@ -1,12 +1,15 @@
+
+#pragma pack_matrix(row_major)
+
 #include <donut/shaders/binding_helpers.hlsli>
 #include "TerrainShaders.h"
 
 #define CBT_FLAG_WRITE
 
-#define CBT_HEAP_BUFFER_BINDING REGISTER_UAV(TESSELLATION_BINDING_CBT, TESSELLATION_SPACE_CBT)
+#define CBT_HEAP_BUFFER_BINDING REGISTER_UAV(TESSELLATION_BINDING_CBT, TESSELLATION_SPACE_TERRAIN)
 #include "ConcurrentBinaryTree.hlsl"
 
-DECLARE_PUSH_CONSTANTS(TessellationSumReductionPushConstants, g_Push, TESSELLATION_BINDING_PUSH_CONSTANTS, TESSELLATION_SPACE_CBT);
+DECLARE_PUSH_CONSTANTS(TessellationSumReductionPushConstants, g_Push, TESSELLATION_BINDING_PUSH_CONSTANTS, TESSELLATION_SPACE_TERRAIN);
 
 
 // For improved performance, multiple passes (5) can be performed in a single kernel

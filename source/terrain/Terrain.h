@@ -9,25 +9,32 @@
 using namespace donut::math;
 
 
-class TerrainMeshInfo;
+class TerrainMeshInstance;
+
+struct TerrainMeshViewDesc
+{
+	uint MaxDepth = 8;
+	uint InitDepth = 1;
+};
 
 class TerrainMeshView
 {
 public:
-	explicit TerrainMeshView(const TerrainMeshInfo* parent, uint maxDepth, uint initDepth);
+	explicit TerrainMeshView(const TerrainMeshInstance* parent, const TerrainMeshViewDesc& desc);
 
 	void Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandList);
 
-	[[nodiscard]] inline const TerrainMeshInfo* GetParent() const { return m_Parent; }
+	[[nodiscard]] inline const TerrainMeshInstance* GetInstance() const { return m_Instance; }
 	[[nodiscard]] inline nvrhi::IBuffer* GetCBTBuffer() const { return m_CBTBuffer; }
 	[[nodiscard]] inline uint GetMaxDepth() const { return m_MaxDepth; }
 
 	[[nodiscard]] inline nvrhi::IBuffer* GetIndirectArgsBuffer() const { return m_IndirectArgsBuffer; }
-	[[nodiscard]] inline uint GetIndirectArgsDispatchOffset() const { return 0; }
-	[[nodiscard]] inline uint GetIndirectArgsDrawOffset() const { return sizeof(nvrhi::DispatchIndirectArguments); }
+
+	[[nodiscard]] inline static uint GetIndirectArgsDispatchOffset() { return 0; }
+	[[nodiscard]] inline static uint GetIndirectArgsDrawOffset() { return sizeof(nvrhi::DispatchIndirectArguments); }
 
 protected:
-	const TerrainMeshInfo* m_Parent;
+	const TerrainMeshInstance* m_Instance;
 
 	uint m_MaxDepth = 8;
 	uint m_InitDepth = 1;
@@ -39,11 +46,7 @@ protected:
 class TerrainMeshInfo : public donut::engine::MeshInfo
 {
 public:
-	struct CBTDesc
-	{
-		uint MaxDepth = 8;
-		uint InitDepth = 1;
-	};
+	
 	struct CreateParams
 	{
 		// Heightmap parameters
@@ -53,7 +56,7 @@ public:
 		std::filesystem::path HeightmapTexturePath;
 
 		// Mesh view descriptions
-		std::vector<CBTDesc> Views;
+		std::vector<TerrainMeshViewDesc> Views;
 	};
 
 	TerrainMeshInfo(
@@ -67,7 +70,7 @@ public:
 	[[nodiscard]] inline float GetHeightScale() const { return m_HeightmapHeightScale; }
 
 	[[nodiscard]] inline size_t GetNumTerrainViews() const { return m_TerrainViews.size(); }
-	[[nodiscard]] inline const TerrainMeshView* GetTerrainView(size_t viewIndex) const { return &m_TerrainViews.at(viewIndex); }
+	[[nodiscard]] inline const TerrainMeshViewDesc& GetTerrainViewDesc(size_t viewIndex) const { return m_TerrainViews.at(viewIndex); }
 
 	[[nodiscard]] nvrhi::TextureHandle GetHeightmapTexture() const { return m_HeightmapTexture; }
 	[[nodiscard]] nvrhi::BufferHandle GetConstantBuffer() const { return m_TerrainCB; }
@@ -82,7 +85,8 @@ private:
 	float2 m_HeightmapMetersPerPixel;
 
 	// The terrain effectively requires a different mesh for different types of view as different views will use different tessellation schemes
-	std::vector<TerrainMeshView> m_TerrainViews;
+	// We store the descriptions of the views we want to create
+	std::vector<TerrainMeshViewDesc> m_TerrainViews;
 
 	// GPU resources
 	nvrhi::TextureHandle m_HeightmapTexture;
@@ -94,6 +98,7 @@ class TerrainMeshInstance : public donut::engine::MeshInstance
 {
 public:
 	explicit TerrainMeshInstance(std::shared_ptr<TerrainMeshInfo> terrain);
+	void Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandList);
 
 	[[nodiscard]] dm::box3 GetLocalBoundingBox() override;
 	[[nodiscard]] std::shared_ptr<SceneGraphLeaf> Clone() override;
@@ -101,7 +106,13 @@ public:
 
 	[[nodiscard]] TerrainMeshInfo* GetTerrain() const { return dynamic_cast<TerrainMeshInfo*>(m_Mesh.get()); }
 
+	[[nodiscard]] inline size_t GetNumTerrainViews() const { return m_TerrainViews.size(); }
+	[[nodiscard]] inline const TerrainMeshView* GetTerrainView(size_t viewIndex) const { return &m_TerrainViews.at(viewIndex); }
+
 protected:
 	// Shorthand for internal use
 	TerrainMeshInfo& Terrain() const { return dynamic_cast<TerrainMeshInfo&>(*m_Mesh); }
+
+protected:
+	std::vector<TerrainMeshView> m_TerrainViews;
 };

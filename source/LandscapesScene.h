@@ -17,7 +17,7 @@ public:
 
     inline const std::shared_ptr<donut::engine::SceneGraph>& GetSceneGraph() const { return m_SceneGraph; }
     inline const std::vector<std::shared_ptr<donut::engine::Light>>& GetLights() const { return m_SceneGraph->GetLights(); }
-    inline const std::shared_ptr<TerrainMeshInfo>& GetTerrain() const { return m_Terrain; }
+    inline const std::shared_ptr<TerrainMeshInstance>& GetTerrainInstance() const { return m_TerrainInstance; }
 
 
     void Animate(float deltaTime);

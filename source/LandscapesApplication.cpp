@@ -48,13 +48,16 @@ bool LandscapesApplication::Init()
     m_TerrainTessellator = std::make_unique<TerrainTessellator>(GetDevice());
     m_TerrainTessellator->Init(*m_ShaderFactory);
 
-    m_TessellationPass_PrimaryView = std::make_unique<PrimaryViewTerrainTessellationPass>(GetDevice());
+    m_TessellationPass_PrimaryView = std::make_unique<PrimaryViewTerrainTessellationPass>(GetDevice(), m_CommonPasses);
     m_TessellationPass_PrimaryView->Init(*m_ShaderFactory);
+
+    m_UI.TerrainSubdivisionLevel = m_TessellationPass_PrimaryView->GetSubdivisionLevel();
+    m_UI.TerrainPrimitivePixelLength = m_TessellationPass_PrimaryView->GetPrimitivePixelLength();
 
     m_CommandList = GetDevice()->createCommandList();
 
     m_Camera.LookAt(float3{ 0.0f, 250.0f, 0.0f }, float3{ 0.0f, 0.f, 0.0f }, float3{ 0.0f, 0.0f, 1.0f });
-    m_Camera.SetMoveSpeed(25.0f);
+    m_Camera.SetMoveSpeed(75.0f);
 
     m_CommandList->open();
 
@@ -124,6 +127,9 @@ void LandscapesApplication::Animate(float fElapsedTimeSeconds)
     m_Scene.Animate(fElapsedTimeSeconds);
 
     m_UI.CameraPosition = m_Camera.GetPosition();
+
+    m_TessellationPass_PrimaryView->SetSubdivisionLevel(static_cast<uint32_t>(m_UI.TerrainSubdivisionLevel));
+    m_TessellationPass_PrimaryView->SetPrimitivePixelLength(m_UI.TerrainPrimitivePixelLength);
 }
 
 void LandscapesApplication::BackBufferResizing()
@@ -177,7 +183,7 @@ void LandscapesApplication::Render(nvrhi::IFramebuffer* framebuffer)
         // TODO: Think about how I want to get references to the terrain
         // Should terrain views keep track of which tessellation pass to use?
         // Then I can walk the scene graph to find terrain views, and know what pass to use
-        const auto& terrain = m_Scene.GetTerrain();
+        const auto& terrain = m_Scene.GetTerrainInstance();
 
         m_TerrainTessellator->ExecutePassForTerrainView(
             m_CommandList,

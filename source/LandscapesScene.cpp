@@ -36,7 +36,7 @@ bool LandscapesScene::Init(nvrhi::ICommandList* commandList, donut::engine::Text
         createParams.HeightmapExtents = { 262.28f, 262.28f };
         createParams.HeightmapHeightScale = 155.23f;
         createParams.HeightmapTexturePath = app::GetDirectoryWithExecutable().parent_path() / "media/test_heightmap.png";
-        createParams.Views.emplace_back(TerrainMeshInfo::CBTDesc{ .MaxDepth = 20, .InitDepth = 1});
+        createParams.Views.emplace_back(TerrainMeshViewDesc{ .MaxDepth = 20, .InitDepth = 1});
         m_Terrain = std::make_shared<TerrainMeshInfo>(m_Device, commandList, textureCache, createParams);
 
         auto terrainNode = std::make_shared<engine::SceneGraphNode>();
@@ -44,6 +44,7 @@ bool LandscapesScene::Init(nvrhi::ICommandList* commandList, donut::engine::Text
         terrainNode->SetName("TerrainNode");
 
         m_TerrainInstance = std::make_shared<TerrainMeshInstance>(m_Terrain);
+        m_TerrainInstance->Init(m_Device, commandList);
         terrainNode->SetLeaf(m_TerrainInstance);
         m_TerrainInstance->SetName("TerrainMeshInstance");
     }

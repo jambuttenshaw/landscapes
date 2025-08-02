@@ -24,6 +24,9 @@ struct UIData
 	bool UpdateTerrain = true;
 	bool DrawTerrain = true;
 
+	int TerrainSubdivisionLevel = 2;
+	float TerrainPrimitivePixelLength = 5.0f;
+
 	donut::math::float3 CameraPosition;
 	donut::math::float3 LightDirection;
 

@@ -3,6 +3,8 @@
 #include <donut/engine/ShaderFactory.h>
 #include <donut/engine/View.h>
 
+#include "donut/engine/CommonRenderPasses.h"
+
 
 class TerrainMeshView;
 
@@ -10,18 +12,25 @@ class TerrainMeshView;
 class ITerrainTessellationPass
 {
 public:
-    ITerrainTessellationPass(nvrhi::DeviceHandle device);
+    enum SubdivisionPassTypes : uint8_t
+    {
+	    Subdivision_Split = 0,
+        Subdivision_Merge,
+    };
+
+public:
+    ITerrainTessellationPass(nvrhi::DeviceHandle device, std::shared_ptr<donut::engine::CommonRenderPasses> commonPasses);
     virtual ~ITerrainTessellationPass() = default;
 
     virtual void Init(donut::engine::ShaderFactory& shaderFactory) = 0;
 
-    virtual void SetupView(const donut::engine::IView* view) = 0;
-    virtual void SetupSplitState(const TerrainMeshView* terrainView, nvrhi::ComputeState& state) = 0;
-    virtual void SetupMergeState(const TerrainMeshView* terrainView, nvrhi::ComputeState& state) = 0;
-    virtual void SetupPushConstants(nvrhi::ICommandList* commandList) = 0;
+    virtual void SetupView(nvrhi::ICommandList* commandList, const TerrainMeshView* terrainView, const donut::engine::IView* view) = 0;
+    virtual void SetupSubdivisionState(const TerrainMeshView* terrainView, SubdivisionPassTypes subdivisionPass, nvrhi::ComputeState& state) = 0;
+    virtual void SetupPushConstants(nvrhi::ICommandList* commandList, const TerrainMeshView* terrainView) = 0;
 
 protected:
     nvrhi::DeviceHandle m_Device;
+    std::shared_ptr<donut::engine::CommonRenderPasses> m_CommonPasses;
 };
 
 class TerrainTessellator
@@ -76,14 +85,19 @@ protected:
 class PrimaryViewTerrainTessellationPass : public ITerrainTessellationPass
 {
 public:
-    PrimaryViewTerrainTessellationPass(nvrhi::DeviceHandle device);
+    PrimaryViewTerrainTessellationPass(nvrhi::DeviceHandle device, std::shared_ptr<donut::engine::CommonRenderPasses> commonPasses);
 
     void Init(donut::engine::ShaderFactory& shaderFactory) override;
 
-    virtual void SetupView(const donut::engine::IView* view) override;
-    virtual void SetupSplitState(const TerrainMeshView* terrainView, nvrhi::ComputeState& state) override;
-    virtual void SetupMergeState(const TerrainMeshView* terrainView, nvrhi::ComputeState& state) override;
-    virtual void SetupPushConstants(nvrhi::ICommandList* commandList) override;
+    virtual void SetupView(nvrhi::ICommandList* commandList, const TerrainMeshView* terrainView, const donut::engine::IView* view) override;
+    virtual void SetupSubdivisionState(const TerrainMeshView* terrainView, SubdivisionPassTypes subdivisionPass, nvrhi::ComputeState& state) override;
+    virtual void SetupPushConstants(nvrhi::ICommandList* commandList, const TerrainMeshView* terrainView) override;
+
+    [[nodiscard]] inline uint32_t GetSubdivisionLevel() const { return m_SubdivisionLevel; }
+    [[nodiscard]] inline float GetPrimitivePixelLength() const { return m_PrimitivePixelLength; }
+
+    inline void SetSubdivisionLevel(uint32_t subdivisionLevel) { m_SubdivisionLevel = subdivisionLevel; }
+    inline void SetPrimitivePixelLength(float primitivePixelLength) { m_PrimitivePixelLength = primitivePixelLength; }
 
 private:
     nvrhi::BindingSetHandle FindOrCreateBindingSet(const TerrainMeshView* key);
@@ -92,7 +106,14 @@ private:
     nvrhi::ShaderHandle m_SplitShader, m_MergeShader;
     nvrhi::ComputePipelineHandle m_SplitPipeline, m_MergePipeline;
 
-    nvrhi::BindingLayoutHandle m_BindingLayout;
+    nvrhi::BindingLayoutHandle m_ViewBindingLayout;
+    nvrhi::BindingLayoutHandle m_TerrainBindingLayout;
 
-    std::unordered_map<const TerrainMeshView*, nvrhi::BindingSetHandle> m_BindingSets;
+    std::unordered_map<const TerrainMeshView*, nvrhi::BindingSetHandle> m_TerrainBindingSets;
+
+    nvrhi::BindingSetHandle m_ViewBindingSet;
+    nvrhi::BufferHandle m_ViewCB;
+
+    uint32_t m_SubdivisionLevel = 2;
+    float m_PrimitivePixelLength = 5.0f;
 };

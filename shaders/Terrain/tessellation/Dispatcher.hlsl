@@ -1,8 +1,10 @@
 
+#pragma pack_matrix(row_major)
+
 #include <donut/shaders/binding_helpers.hlsli>
 #include "TerrainShaders.h"
 
-#define CBT_HEAP_BUFFER_BINDING REGISTER_SRV(TESSELLATION_BINDING_CBT, TESSELLATION_SPACE_CBT)
+#define CBT_HEAP_BUFFER_BINDING REGISTER_SRV(TESSELLATION_BINDING_CBT, TESSELLATION_SPACE_TERRAIN)
 #include "ConcurrentBinaryTree.hlsl"
 
 struct IndirectArgs
@@ -22,7 +24,7 @@ struct IndirectArgs
         uint startInstanceLocation;
     } lebDispatch;
 };
-RWStructuredBuffer<IndirectArgs> RWIndirectArgs : REGISTER_UAV(TESSELLATION_BINDING_INDIRECT_ARGS, TESSELLATION_SPACE_CBT);
+RWStructuredBuffer<IndirectArgs> RWIndirectArgs : REGISTER_UAV(TESSELLATION_BINDING_INDIRECT_ARGS, TESSELLATION_SPACE_TERRAIN);
 
 [numthreads(1, 1, 1)]
 void cbt_dispatcher_cs()

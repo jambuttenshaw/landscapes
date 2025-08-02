@@ -6,8 +6,9 @@
 #include "TerrainShaders.h"
 
 
-ITerrainTessellationPass::ITerrainTessellationPass(nvrhi::DeviceHandle device)
+ITerrainTessellationPass::ITerrainTessellationPass(nvrhi::DeviceHandle device, std::shared_ptr<donut::engine::CommonRenderPasses> commonPasses)
 	: m_Device(std::move(device))
+	, m_CommonPasses(std::move(commonPasses))
 {
 }
 
@@ -32,7 +33,7 @@ void TerrainTessellator::Init(donut::engine::ShaderFactory& shaderFactory)
 	// Create binding layouts
 	{
 		nvrhi::BindingLayoutDesc layoutDesc;
-		layoutDesc.setRegisterSpace(TESSELLATION_SPACE_CBT)
+		layoutDesc.setRegisterSpace(TESSELLATION_SPACE_TERRAIN)
 			.setRegisterSpaceIsDescriptorSet(true)
 			.setVisibility(nvrhi::ShaderType::Compute);
 
@@ -82,10 +83,10 @@ void TerrainTessellator::ExecutePassForTerrainView(
 	ITerrainTessellationPass& pass,
 	const TerrainMeshView* terrainView)
 {
-	pass.SetupView(view);
-
 	auto& cachedData = m_TerrainCache[terrainView];
 	auto& bindings = cachedData.bindings;
+
+	commandList->beginMarker("ExecuteTerrainTessellation");
 
 	// Create binding sets if there are none for this terrain view
 	if (!bindings[Bindings_CBTReadOnly] || !bindings[Bindings_CBTReadWrite])
@@ -121,22 +122,19 @@ void TerrainTessellator::ExecutePassForTerrainView(
 	{
 		commandList->beginMarker("Subdivision");
 
-		nvrhi::ComputeState state;
+		pass.SetupView(commandList, terrainView, view);
 
-		if (cachedData.split)
-			pass.SetupSplitState(terrainView, state);
-		else
-			pass.SetupMergeState(terrainView, state);
+		nvrhi::ComputeState state;
+		pass.SetupSubdivisionState(terrainView, static_cast<ITerrainTessellationPass::SubdivisionPassTypes>(cachedData.split), state);
 
 		state.setIndirectParams(terrainView->GetIndirectArgsBuffer());
 		commandList->setComputeState(state);
 
-		pass.SetupPushConstants(commandList);
+		pass.SetupPushConstants(commandList, terrainView);
 
-		commandList->dispatchIndirect(terrainView->GetIndirectArgsDispatchOffset());
+		commandList->dispatchIndirect(TerrainMeshView::GetIndirectArgsDispatchOffset());
 
 		cachedData.split = !cachedData.split;
-
 		commandList->endMarker();
 	}
 
@@ -199,11 +197,14 @@ void TerrainTessellator::ExecutePassForTerrainView(
 		commandList->dispatch(1);
 		commandList->endMarker();
 	}
+
+	commandList->endMarker();
+	// Now the terrain can be rendered with drawIndirect
 }
 
 
-PrimaryViewTerrainTessellationPass::PrimaryViewTerrainTessellationPass(nvrhi::DeviceHandle device)
-	: ITerrainTessellationPass(std::move(device))
+PrimaryViewTerrainTessellationPass::PrimaryViewTerrainTessellationPass(nvrhi::DeviceHandle device, std::shared_ptr<donut::engine::CommonRenderPasses> commonPasses)
+	: ITerrainTessellationPass(std::move(device), std::move(commonPasses))
 {
 }
 
@@ -218,16 +219,29 @@ void PrimaryViewTerrainTessellationPass::Init(donut::engine::ShaderFactory& shad
 		nvrhi::BindingLayoutDesc layoutDesc;
 		layoutDesc.setVisibility(nvrhi::ShaderType::Compute)
 			.setRegisterSpaceIsDescriptorSet(true)
-			.setRegisterSpace(TESSELLATION_SPACE_CBT)
-			.addItem(nvrhi::BindingLayoutItem::PushConstants(TESSELLATION_BINDING_PUSH_CONSTANTS, sizeof(TessellationSubdivisionPushConstants)))
-			.addItem(nvrhi::BindingLayoutItem::StructuredBuffer_UAV(TESSELLATION_BINDING_CBT));
+			.setRegisterSpace(TESSELLATION_SPACE_VIEW)
+			.addItem(nvrhi::BindingLayoutItem::VolatileConstantBuffer(TESSELLATION_BINDING_SUBDIVISION_CONSTANTS))
+			.addItem(nvrhi::BindingLayoutItem::Sampler(TESSELLATION_BINDING_SUBDIVISION_HEIGHTMAP_SAMPLER));
 
-		m_BindingLayout = m_Device->createBindingLayout(layoutDesc);
+		m_ViewBindingLayout = m_Device->createBindingLayout(layoutDesc);
+	}
+	{
+		nvrhi::BindingLayoutDesc layoutDesc;
+		layoutDesc.setVisibility(nvrhi::ShaderType::Compute)
+			.setRegisterSpaceIsDescriptorSet(true)
+			.setRegisterSpace(TESSELLATION_SPACE_TERRAIN)
+			.addItem(nvrhi::BindingLayoutItem::PushConstants(TESSELLATION_BINDING_PUSH_CONSTANTS, sizeof(TerrainPushConstants)))
+			.addItem(nvrhi::BindingLayoutItem::ConstantBuffer(TESSELLATION_BINDING_TERRAIN_CONSTANTS))
+			.addItem(nvrhi::BindingLayoutItem::StructuredBuffer_UAV(TESSELLATION_BINDING_CBT))
+			.addItem(nvrhi::BindingLayoutItem::StructuredBuffer_SRV(TESSELLATION_BINDING_INSTANCE_BUFFER))
+			.addItem(nvrhi::BindingLayoutItem::Texture_SRV(TESSELLATION_BINDING_SUBDIVISION_HEIGHTMAP));
+
+		m_TerrainBindingLayout = m_Device->createBindingLayout(layoutDesc);
 	}
 
 	{
 		nvrhi::ComputePipelineDesc psoDesc;
-		psoDesc.addBindingLayout(m_BindingLayout);
+		psoDesc.bindingLayouts = { m_TerrainBindingLayout, m_ViewBindingLayout };
 
 		psoDesc.setComputeShader(m_SplitShader);
 		m_SplitPipeline = m_Device->createComputePipeline(psoDesc);
@@ -235,44 +249,70 @@ void PrimaryViewTerrainTessellationPass::Init(donut::engine::ShaderFactory& shad
 		psoDesc.setComputeShader(m_MergeShader);
 		m_MergePipeline = m_Device->createComputePipeline(psoDesc);
 	}
+
+	{
+		m_ViewCB = m_Device->createBuffer(nvrhi::utils::CreateVolatileConstantBufferDesc(
+			sizeof(SubdivisionConstants), "SubdivisionConstants", 16
+		));
+	}
+
+	{
+		nvrhi::BindingSetDesc setDesc;
+		setDesc.addItem(nvrhi::BindingSetItem::ConstantBuffer(TESSELLATION_BINDING_SUBDIVISION_CONSTANTS, m_ViewCB));
+		setDesc.addItem(nvrhi::BindingSetItem::Sampler(TESSELLATION_BINDING_SUBDIVISION_HEIGHTMAP_SAMPLER, m_CommonPasses->m_LinearClampSampler));
+
+		m_ViewBindingSet = m_Device->createBindingSet(setDesc, m_ViewBindingLayout);
+	}
 }
 
-void PrimaryViewTerrainTessellationPass::SetupView(const donut::engine::IView* view)
+void PrimaryViewTerrainTessellationPass::SetupView(nvrhi::ICommandList* commandList, const TerrainMeshView* terrainView, const donut::engine::IView* view)
 {
-	
+	SubdivisionConstants constants;
+	view->FillPlanarViewConstants(constants.view);
+
+	// Calculate LOD factor
+	{
+		// constants.view.matViewToClip.m11 == tan(fovy / 2)
+		float tmp = (2.0f / constants.view.matViewToClip.m11)
+			/ constants.view.viewportSize.y * static_cast<float>(1 << m_SubdivisionLevel)
+			* m_PrimitivePixelLength;
+
+		constants.lodFactor = -2.0f * std::log2(tmp) + 2.0f;
+	}
+
+	commandList->writeBuffer(m_ViewCB, &constants, sizeof(constants));
 }
 
-void PrimaryViewTerrainTessellationPass::SetupSplitState(const TerrainMeshView* terrainView, nvrhi::ComputeState& state)
+void PrimaryViewTerrainTessellationPass::SetupSubdivisionState(const TerrainMeshView* terrainView, SubdivisionPassTypes subdivisionPass, nvrhi::ComputeState& state)
 {
-	state.bindings = { FindOrCreateBindingSet(terrainView) };
-	state.pipeline = m_SplitPipeline;
+	state.bindings = { FindOrCreateBindingSet(terrainView), m_ViewBindingSet };
+	state.pipeline = subdivisionPass == Subdivision_Split ? m_SplitPipeline : m_MergePipeline;
 }
 
-void PrimaryViewTerrainTessellationPass::SetupMergeState(const TerrainMeshView* terrainView, nvrhi::ComputeState& state)
+void PrimaryViewTerrainTessellationPass::SetupPushConstants(nvrhi::ICommandList* commandList, const TerrainMeshView* terrainView)
 {
-	state.bindings = { FindOrCreateBindingSet(terrainView) };
-	state.pipeline = m_MergePipeline;
-}
-
-void PrimaryViewTerrainTessellationPass::SetupPushConstants(nvrhi::ICommandList* commandList)
-{
-	TessellationSubdivisionPushConstants constants;
-	constants.Target = { 0.417f, 0.253f };
+	TerrainPushConstants constants;
+	constants.startInstanceLocation = terrainView->GetInstance()->GetInstanceIndex();
 	commandList->setPushConstants(&constants, sizeof(constants));
 }
 
 nvrhi::BindingSetHandle PrimaryViewTerrainTessellationPass::FindOrCreateBindingSet(const TerrainMeshView* key)
 {
-	nvrhi::BindingSetHandle bindingSet = m_BindingSets[key];
+	nvrhi::BindingSetHandle bindingSet = m_TerrainBindingSets[key];
 	if (!bindingSet)
 	{
+		const TerrainMeshInfo* terrainMesh = key->GetInstance()->GetTerrain();
+
 		nvrhi::BindingSetDesc setDesc;
-		setDesc.addItem(nvrhi::BindingSetItem::PushConstants(TESSELLATION_BINDING_PUSH_CONSTANTS, sizeof(TessellationSubdivisionPushConstants)))
-			.addItem(nvrhi::BindingSetItem::StructuredBuffer_UAV(TESSELLATION_BINDING_CBT, key->GetCBTBuffer()));
+		setDesc.addItem(nvrhi::BindingSetItem::PushConstants(TESSELLATION_BINDING_PUSH_CONSTANTS, sizeof(TerrainPushConstants)))
+			.addItem(nvrhi::BindingSetItem::ConstantBuffer(TESSELLATION_BINDING_TERRAIN_CONSTANTS, terrainMesh->GetConstantBuffer()))
+			.addItem(nvrhi::BindingSetItem::StructuredBuffer_UAV(TESSELLATION_BINDING_CBT, key->GetCBTBuffer()))
+			.addItem(nvrhi::BindingSetItem::StructuredBuffer_SRV(TESSELLATION_BINDING_INSTANCE_BUFFER, terrainMesh->buffers->instanceBuffer.Get()))
+			.addItem(nvrhi::BindingSetItem::Texture_SRV(TESSELLATION_BINDING_SUBDIVISION_HEIGHTMAP, terrainMesh->GetHeightmapTexture()));
 
-		bindingSet = m_Device->createBindingSet(setDesc, m_BindingLayout);
+		bindingSet = m_Device->createBindingSet(setDesc, m_TerrainBindingLayout);
 
-		m_BindingSets[key] = bindingSet;
+		m_TerrainBindingSets[key] = bindingSet;
 	}
 	return bindingSet;
 }

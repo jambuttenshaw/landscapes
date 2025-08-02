@@ -224,7 +224,7 @@ nvrhi::BindingSetHandle TerrainGBufferFillPass::CreateInputBindingSet(const donu
 
 nvrhi::BindingSetHandle TerrainGBufferFillPass::CreateTerrainBindingSet(const TerrainMeshView* terrainView)
 {
-	const TerrainMeshInfo* parent = terrainView->GetParent();
+	const TerrainMeshInfo* parent = terrainView->GetInstance()->GetTerrain();
 
 	auto bindingSetDesc = nvrhi::BindingSetDesc()
 		.addItem(nvrhi::BindingSetItem::ConstantBuffer(GBUFFER_BINDING_TERRAIN_CONSTANTS, parent->GetConstantBuffer()))
@@ -277,7 +277,7 @@ void RenderTerrainView(
 		constants.startInstanceLocation = drawItem->instance->GetInstanceIndex();
 
 		commandList->setPushConstants(&constants, sizeof(constants));
-		commandList->drawIndirect(drawItem->terrainView->GetIndirectArgsDrawOffset());
+		commandList->drawIndirect(TerrainMeshView::GetIndirectArgsDrawOffset());
 	}
 
 	commandList->endMarker();

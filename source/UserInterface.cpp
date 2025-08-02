@@ -40,6 +40,9 @@ void UIRenderer::buildUI()
 	ImGui::Checkbox("Draw Terrain", &m_UI.DrawTerrain);
 	ImGui::Checkbox("Update Terrain", &m_UI.UpdateTerrain);
 
+	ImGui::SliderInt("Subdivision Level", &m_UI.TerrainSubdivisionLevel, 1, 5);
+	ImGui::SliderFloat("Primitive Pixel Length", &m_UI.TerrainPrimitivePixelLength, 1.0f, 15.0f);
+
 	ImGui::Separator();
 
 	ImGui::Text("Camera Position: %.1f, %.1f, %.1f", m_UI.CameraPosition.x, m_UI.CameraPosition.y, m_UI.CameraPosition.z);
