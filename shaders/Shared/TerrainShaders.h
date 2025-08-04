@@ -2,6 +2,7 @@
 #define TERRAIN_SHADERS_H
 
 #include <donut/shaders/view_cb.h>
+#include "ViewEx_cb.h"
 
 
 // GBuffer rendering bindings
@@ -34,6 +35,8 @@ struct TerrainConstants
 struct SubdivisionConstants
 {
 	PlanarViewConstants view;
+	PlanarViewExConstants viewEx;
+
 	float lodFactor;
 };
 

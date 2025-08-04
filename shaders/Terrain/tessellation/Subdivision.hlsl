@@ -54,7 +54,7 @@ float TriangleLevelOfDetail_Perspective(float3 patchVertices_WorldSpace[3])
     float3 v2 = mul(float4(patchVertices_WorldSpace[2], 1.0f), c_Subdivision.view.matWorldToView).xyz;
 
 #if 0 //  human-readable version
-    vec3 edgeCenter = (v0 + v2); // division by 2 was moved to u_LodFactor
+    vec3 edgeCenter = (v0 + v2); // division by 2 was moved to lodFactor
     vec3 edgeVector = (v2 - v0);
     float distanceToEdgeSqr = dot(edgeCenter, edgeCenter);
     float edgeLengthSqr = dot(edgeVector, edgeVector);

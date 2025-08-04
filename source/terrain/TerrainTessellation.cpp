@@ -4,6 +4,7 @@
 
 #include "Terrain.h"
 #include "TerrainShaders.h"
+#include "engine/ViewEx.h"
 
 
 ITerrainTessellationPass::ITerrainTessellationPass(nvrhi::DeviceHandle device, std::shared_ptr<donut::engine::CommonRenderPasses> commonPasses)
@@ -269,6 +270,10 @@ void PrimaryViewTerrainTessellationPass::SetupView(nvrhi::ICommandList* commandL
 {
 	SubdivisionConstants constants;
 	view->FillPlanarViewConstants(constants.view);
+	if (auto viewEx = dynamic_cast<const PlanarViewEx*>(view))
+	{
+		viewEx->FillPlanarViewExConstants(constants.viewEx);
+	}
 
 	// Calculate LOD factor
 	{
