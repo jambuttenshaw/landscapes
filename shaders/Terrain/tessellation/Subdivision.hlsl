@@ -21,6 +21,7 @@ Texture2D<float> t_HeightmapTexture : REGISTER_SRV(TESSELLATION_BINDING_SUBDIVIS
 SamplerState s_HeightmapSampler : REGISTER_SAMPLER(TESSELLATION_BINDING_SUBDIVISION_HEIGHTMAP_SAMPLER, TESSELLATION_SPACE_VIEW);
 
 #include "../TerrainHelpers.hlsli"
+#include "../FrustumCulling.hlsli"
 
 
 float3 LEBSpaceToLocalSpace(float2 leb_pos)
@@ -75,9 +76,22 @@ float TriangleLevelOfDetail(float3 patchVertices_WorldSpace[3])
     return TriangleLevelOfDetail_Perspective(patchVertices_WorldSpace);
 }
 
+bool FrustumCullingTest(float3 patchVertices_WorldSpace[3])
+{
+    float3 bmin = min(min(patchVertices_WorldSpace[0].xyz, patchVertices_WorldSpace[1].xyz), patchVertices_WorldSpace[2].xyz);
+    float3 bmax = max(max(patchVertices_WorldSpace[0].xyz, patchVertices_WorldSpace[1].xyz), patchVertices_WorldSpace[2].xyz);
+
+    return FrustumCullingTest(c_Subdivision.viewEx.viewFrustum, bmin, bmax);
+}
+
 float LevelOfDetail(float3 patchVertices_WorldSpace[3])
 {
-	// TODO: Frustum culling & terrain variance testing
+	// Frustum culling
+    if (!FrustumCullingTest(patchVertices_WorldSpace))
+    {
+	    return 0.0f;
+    }
+
     return TriangleLevelOfDetail(patchVertices_WorldSpace);
 }
 

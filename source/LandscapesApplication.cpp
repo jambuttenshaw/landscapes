@@ -141,6 +141,14 @@ void LandscapesApplication::Render(nvrhi::IFramebuffer* framebuffer)
 {
     const auto& fbInfo = framebuffer->getFramebufferInfo();
 
+    nvrhi::Viewport windowViewport(static_cast<float>(fbInfo.width), static_cast<float>(fbInfo.height));
+    m_View.SetViewport(windowViewport);
+    m_View.SetMatrices(
+        m_Camera.GetWorldToViewMatrix(),
+        perspProjD3DStyle(dm::PI_f * 0.25f, windowViewport.width() / windowViewport.height(), 0.1f, 100.0f)
+    );
+    m_View.UpdateCache();
+
     uint2 size = uint2(fbInfo.width, fbInfo.height);
     if ((!m_GBuffer || any(m_GBuffer->GetSize() != size)))
     {
@@ -154,17 +162,9 @@ void LandscapesApplication::Render(nvrhi::IFramebuffer* framebuffer)
         m_GBufferPass.reset();
 
         m_GBuffer = std::make_shared<render::GBufferRenderTargets>();
-        m_GBuffer->Init(GetDevice(), size, 1, false, true);
+        m_GBuffer->Init(GetDevice(), size, 1, false, m_View.IsReverseDepth());
         CreateDeferredShadingOutput(GetDevice(), size, 1);
     }
-
-    nvrhi::Viewport windowViewport(static_cast<float>(fbInfo.width), static_cast<float>(fbInfo.height));
-    m_View.SetViewport(windowViewport);
-    m_View.SetMatrices(
-        m_Camera.GetWorldToViewMatrix(), 
-        perspProjD3DStyleReverse(dm::PI_f * 0.25f, windowViewport.width() / windowViewport.height(), 0.1f)
-    );
-    m_View.UpdateCache();
 
     if (!m_GBufferPass)
     {

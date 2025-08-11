@@ -274,6 +274,11 @@ void PrimaryViewTerrainTessellationPass::SetupView(nvrhi::ICommandList* commandL
 	{
 		viewEx->FillPlanarViewExConstants(constants.viewEx);
 	}
+	else
+	{
+		// Tessellation pipeline will not work correctly
+		assert(false);
+	}
 
 	// Calculate LOD factor
 	{

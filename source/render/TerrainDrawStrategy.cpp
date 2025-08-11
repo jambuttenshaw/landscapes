@@ -35,7 +35,7 @@ void TerrainDrawStrategy::PrepareForView(const std::shared_ptr<donut::engine::Sc
 					drawItem.material = nullptr; // TODO: (multiple materials will be required)
 					drawItem.buffers = drawItem.mesh->buffers.get();
 					drawItem.distanceToCamera = 0;
-					drawItem.cullMode = nvrhi::RasterCullMode::Front; // LEB creates vertices in opposite winding order
+					drawItem.cullMode = nvrhi::RasterCullMode::None; // LEB creates vertices in opposite winding order
 
 					drawItem.terrainView = terrainInstance->GetTerrainView(viewEx.GetTerrainViewIndex());
 				}
