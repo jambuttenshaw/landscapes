@@ -152,6 +152,14 @@ void LandscapesApplication::Render(nvrhi::IFramebuffer* framebuffer)
     );
     m_View.UpdateCache();
 
+    if (m_UI.UpdateTerrain)
+    {
+        const frustum& viewFrustum = m_View.GetViewFrustum();
+        const plane& plane = viewFrustum.planes[frustum::TOP_PLANE];
+        m_UI.DebugPlaneOrigin = m_Camera.GetPosition();
+        m_UI.DebugPlaneNormal = m_Camera.GetUp();
+    }
+
     uint2 size = uint2(fbInfo.width, fbInfo.height);
     if ((!m_GBuffer || any(m_GBuffer->GetSize() != size)))
     {
