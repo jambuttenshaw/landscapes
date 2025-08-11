@@ -57,7 +57,7 @@ void DebugPlanePass::Render(nvrhi::ICommandList* commandList, const donut::engin
 
 	DebugPlaneConstants constants;
 	view.FillPlanarViewConstants(constants.View);
-	constants.PlaneSize = 25.0f;
+	constants.PlaneSize = 125.0f;
 	constants.PlaneNormal = PlaneNormal;
 	constants.PlaneOrigin = PlaneOrigin;
 	commandList->writeBuffer(m_ConstantBuffer, &constants, sizeof(constants));

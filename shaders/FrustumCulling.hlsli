@@ -30,11 +30,12 @@ bool FrustumCullingTest(const float4 planes[6], float3 bmin, float3 bmax)
 {
     float a = 1.0f;
 
-    for (int i = 0; i < 6 && a >= 0.0f; ++i)
+    //for (int i = 0; i < 6 && a >= 0.0f; ++i)
+	int i = 0;
     {
 		float3 n = NegativeVertex(bmin, bmax, planes[i].xyz);
 
-		a = dot(float4(n, 1.0f), planes[i]);
+		a = -dot(float4(n, 1.0f), planes[i]);
 	}
 
     return (a >= 0.0);

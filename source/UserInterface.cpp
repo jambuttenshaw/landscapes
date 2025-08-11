@@ -52,8 +52,8 @@ void UIRenderer::buildUI()
 	{
 		float azimuth, elevation, distance;
 		cartesianToSpherical(m_UI.LightDirection, azimuth, elevation, distance);
-		ImGui::SliderAngle("Sun Azimuth", &azimuth, -179.0f, 180.0f);
-		ImGui::SliderAngle("Sun Elevation", &elevation, -89.0f, 0.0f);
+		ImGui::SliderAngle("Sun Azimuth", &azimuth, -179.0f, 180.0f, "%.1f deg");
+		ImGui::SliderAngle("Sun Elevation", &elevation, -89.0f, 0.0f, "%.1f deg");
 		m_UI.LightDirection = sphericalToCartesian(azimuth, elevation, distance);
 	}
 
@@ -63,9 +63,11 @@ void UIRenderer::buildUI()
 	{
 		float azimuth, elevation, distance;
 		cartesianToSpherical(m_UI.DebugPlaneNormal, azimuth, elevation, distance);
-		ImGui::SliderAngle("Plane Azimuth", &azimuth, -179.0f, 180.0f);
-		ImGui::SliderAngle("Plane Elevation", &elevation, -89.0f, 0.0f);
+		ImGui::SliderAngle("Plane Azimuth", &azimuth, -179.0f, 180.0f, "%.1f deg");
+		ImGui::SliderAngle("Plane Elevation", &elevation, -89.9f, 89.9f, "%.1f deg");
 		m_UI.DebugPlaneNormal = sphericalToCartesian(azimuth, elevation, distance);
+
+		ImGui::Text("%f, %f, %f", m_UI.DebugPlaneNormal.x, m_UI.DebugPlaneNormal.y, m_UI.DebugPlaneNormal.z);
 	}
 
 	ImGui::End();

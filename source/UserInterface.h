@@ -36,7 +36,7 @@ struct UIData
 	UIData()
 	{
 		LightDirection = donut::math::sphericalToCartesian(0.0f, -0.7f, 1.0f);
-		DebugPlaneNormal = donut::math::sphericalToCartesian(0.0f, 0.0f, 1.0f);
+		DebugPlaneNormal = donut::math::sphericalToCartesian(0.0f, -1.569f, 1.0f);
 	}
 };
 

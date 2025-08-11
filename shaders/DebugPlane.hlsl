@@ -18,8 +18,9 @@ void debug_plane_vs(
 	o_uv = float2(i_vertex % 2, i_vertex / 2);
 
     float3 normal = c_View.PlaneNormal;
-    float3 tangent = normal.zxy;
-    float3 bitangent = cross(normal, tangent);
+    float3 tangent = float3(-normal.y, normal.x, 0.0f);
+    float3 bitangent = normalize(cross(normal, tangent));
+    tangent = normalize(cross(normal, bitangent));
 
     float2 displacement = o_uv * 2.0f - 1.0f;
     float3 worldPos = c_View.PlaneOrigin + c_View.PlaneSize * (tangent * displacement.x + bitangent * displacement.y);

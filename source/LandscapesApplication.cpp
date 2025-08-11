@@ -51,7 +51,7 @@ bool LandscapesApplication::Init()
     m_TerrainTessellator = std::make_unique<TerrainTessellator>(GetDevice());
     m_TerrainTessellator->Init(*m_ShaderFactory);
 
-    m_TessellationPass_PrimaryView = std::make_unique<PrimaryViewTerrainTessellationPass>(GetDevice(), m_CommonPasses);
+    m_TessellationPass_PrimaryView = std::make_unique<PrimaryViewTerrainTessellationPass>(GetDevice(), m_CommonPasses, m_UI);
     m_TessellationPass_PrimaryView->Init(*m_ShaderFactory);
 
     m_UI.TerrainSubdivisionLevel = m_TessellationPass_PrimaryView->GetSubdivisionLevel();
