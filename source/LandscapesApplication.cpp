@@ -45,6 +45,9 @@ bool LandscapesApplication::Init()
     m_GBufferVisualizationPass = std::make_unique<GBufferVisualizationPass>(GetDevice());
     m_GBufferVisualizationPass->Init(m_ShaderFactory);
 
+    m_DebugPlanePass = std::make_unique<DebugPlanePass>(GetDevice());
+    m_DebugPlanePass->Init(m_ShaderFactory);
+
     m_TerrainTessellator = std::make_unique<TerrainTessellator>(GetDevice());
     m_TerrainTessellator->Init(*m_ShaderFactory);
 
@@ -145,7 +148,7 @@ void LandscapesApplication::Render(nvrhi::IFramebuffer* framebuffer)
     m_View.SetViewport(windowViewport);
     m_View.SetMatrices(
         m_Camera.GetWorldToViewMatrix(),
-        perspProjD3DStyle(dm::PI_f * 0.25f, windowViewport.width() / windowViewport.height(), 0.1f, 100.0f)
+        perspProjD3DStyleReverse(dm::PI_f * 0.25f, windowViewport.width() / windowViewport.height(), 0.1f)
     );
     m_View.UpdateCache();
 
@@ -158,6 +161,7 @@ void LandscapesApplication::Render(nvrhi::IFramebuffer* framebuffer)
         m_BindingCache->Clear();
         m_DeferredLightingPass->ResetBindingCache();
         m_GBufferVisualizationPass->ResetBindingCache();
+        m_DebugPlanePass->ResetPipeline();
 
         m_GBufferPass.reset();
 
@@ -210,6 +214,14 @@ void LandscapesApplication::Render(nvrhi::IFramebuffer* framebuffer)
             context
         );
     }
+
+    m_DebugPlanePass->Render(
+		m_CommandList, 
+        m_View, 
+        m_GBuffer->GBufferFramebuffer->GetFramebuffer(m_View),
+        m_UI.DebugPlaneNormal,
+        m_UI.DebugPlaneOrigin
+    );
 
     render::DeferredLightingPass::Inputs deferredInputs;
     deferredInputs.SetGBuffer(*m_GBuffer);

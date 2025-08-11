@@ -15,6 +15,7 @@
 #include "LandscapesScene.h"
 
 #include "engine/ViewEx.h"
+#include "render/passes/DebugPasses.h"
 #include "render/Passes/GBufferVisualizationPass.h"
 #include "render/Passes/TerrainPass.h"
 #include "terrain/TerrainTessellation.h"
@@ -72,6 +73,8 @@ private:
 
 	std::unique_ptr<donut::render::DeferredLightingPass> m_DeferredLightingPass;
 	std::unique_ptr<GBufferVisualizationPass> m_GBufferVisualizationPass;
+
+	std::unique_ptr<DebugPlanePass> m_DebugPlanePass;
 
 	LandscapesScene m_Scene;
 };

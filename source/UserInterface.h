@@ -21,7 +21,7 @@ struct UIData
 
 	bool Wireframe = true;
 
-	bool UpdateTerrain = true;
+	bool UpdateTerrain = false;
 	bool DrawTerrain = true;
 
 	int TerrainSubdivisionLevel = 2;
@@ -30,9 +30,13 @@ struct UIData
 	donut::math::float3 CameraPosition;
 	donut::math::float3 LightDirection;
 
+	donut::math::float3 DebugPlaneOrigin = { 0, 0, 0 };
+	donut::math::float3 DebugPlaneNormal;
+
 	UIData()
 	{
 		LightDirection = donut::math::sphericalToCartesian(0.0f, -0.7f, 1.0f);
+		DebugPlaneNormal = donut::math::sphericalToCartesian(0.0f, 0.0f, 1.0f);
 	}
 };
 
