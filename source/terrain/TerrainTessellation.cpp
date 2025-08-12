@@ -205,8 +205,9 @@ void TerrainTessellator::ExecutePassForTerrainView(
 }
 
 
-PrimaryViewTerrainTessellationPass::PrimaryViewTerrainTessellationPass(nvrhi::DeviceHandle device, std::shared_ptr<donut::engine::CommonRenderPasses> commonPasses, UIData& ui)
-	: ITerrainTessellationPass(std::move(device), std::move(commonPasses)), m_UI(ui)
+PrimaryViewTerrainTessellationPass::PrimaryViewTerrainTessellationPass(nvrhi::DeviceHandle device, std::shared_ptr<donut::engine::CommonRenderPasses> commonPasses)
+	: ITerrainTessellationPass(std::move(device)
+	, std::move(commonPasses))
 {
 }
 
@@ -280,7 +281,6 @@ void PrimaryViewTerrainTessellationPass::SetupView(nvrhi::ICommandList* commandL
 		// Tessellation pipeline will not work correctly
 		assert(false);
 	}
-	constants.viewEx.viewFrustum[0] = float4(m_UI.DebugPlaneNormal, -dot(m_UI.DebugPlaneNormal, m_UI.DebugPlaneOrigin));
 
 	// Calculate LOD factor
 	{

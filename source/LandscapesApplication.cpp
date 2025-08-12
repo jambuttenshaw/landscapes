@@ -51,10 +51,10 @@ bool LandscapesApplication::Init()
     m_TerrainTessellator = std::make_unique<TerrainTessellator>(GetDevice());
     m_TerrainTessellator->Init(*m_ShaderFactory);
 
-    m_TessellationPass_PrimaryView = std::make_unique<PrimaryViewTerrainTessellationPass>(GetDevice(), m_CommonPasses, m_UI);
+    m_TessellationPass_PrimaryView = std::make_unique<PrimaryViewTerrainTessellationPass>(GetDevice(), m_CommonPasses);
     m_TessellationPass_PrimaryView->Init(*m_ShaderFactory);
 
-    m_UI.TerrainSubdivisionLevel = m_TessellationPass_PrimaryView->GetSubdivisionLevel();
+    m_UI.TerrainSubdivisionLevel = static_cast<int>(m_TessellationPass_PrimaryView->GetSubdivisionLevel());
     m_UI.TerrainPrimitivePixelLength = m_TessellationPass_PrimaryView->GetPrimitivePixelLength();
 
     m_CommandList = GetDevice()->createCommandList();
@@ -152,14 +152,6 @@ void LandscapesApplication::Render(nvrhi::IFramebuffer* framebuffer)
     );
     m_View.UpdateCache();
 
-    if (m_UI.UpdateTerrain)
-    {
-        const frustum& viewFrustum = m_View.GetViewFrustum();
-        const plane& plane = viewFrustum.planes[frustum::TOP_PLANE];
-        m_UI.DebugPlaneOrigin = m_Camera.GetPosition();
-        m_UI.DebugPlaneNormal = m_Camera.GetUp();
-    }
-
     uint2 size = uint2(fbInfo.width, fbInfo.height);
     if ((!m_GBuffer || any(m_GBuffer->GetSize() != size)))
     {
@@ -223,13 +215,16 @@ void LandscapesApplication::Render(nvrhi::IFramebuffer* framebuffer)
         );
     }
 
-    m_DebugPlanePass->Render(
-		m_CommandList, 
-        m_View, 
-        m_GBuffer->GBufferFramebuffer->GetFramebuffer(m_View),
-        m_UI.DebugPlaneNormal,
-        m_UI.DebugPlaneOrigin
-    );
+    if (m_UI.ShowDebugPlane)
+    {
+        m_DebugPlanePass->Render(
+	    	m_CommandList, 
+            m_View, 
+            m_GBuffer->GBufferFramebuffer->GetFramebuffer(m_View),
+            m_UI.DebugPlaneNormal,
+            m_UI.DebugPlaneOrigin
+        );
+    }
 
     render::DeferredLightingPass::Inputs deferredInputs;
     deferredInputs.SetGBuffer(*m_GBuffer);

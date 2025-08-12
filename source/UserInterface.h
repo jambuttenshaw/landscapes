@@ -21,7 +21,7 @@ struct UIData
 
 	bool Wireframe = true;
 
-	bool UpdateTerrain = false;
+	bool UpdateTerrain = true;
 	bool DrawTerrain = true;
 
 	int TerrainSubdivisionLevel = 2;
@@ -30,6 +30,7 @@ struct UIData
 	donut::math::float3 CameraPosition;
 	donut::math::float3 LightDirection;
 
+	bool ShowDebugPlane = false;
 	donut::math::float3 DebugPlaneOrigin = { 0, 0, 0 };
 	donut::math::float3 DebugPlaneNormal;
 

@@ -59,15 +59,17 @@ void UIRenderer::buildUI()
 
 	ImGui::Separator();
 
-	ImGui::DragFloat3("Plane Origin", &m_UI.DebugPlaneOrigin.x, 0.1f);
+	ImGui::Checkbox("Show Debug Plane", &m_UI.ShowDebugPlane);
+	if (m_UI.ShowDebugPlane)
 	{
-		float azimuth, elevation, distance;
-		cartesianToSpherical(m_UI.DebugPlaneNormal, azimuth, elevation, distance);
-		ImGui::SliderAngle("Plane Azimuth", &azimuth, -179.0f, 180.0f, "%.1f deg");
-		ImGui::SliderAngle("Plane Elevation", &elevation, -89.9f, 89.9f, "%.1f deg");
-		m_UI.DebugPlaneNormal = sphericalToCartesian(azimuth, elevation, distance);
-
-		ImGui::Text("%f, %f, %f", m_UI.DebugPlaneNormal.x, m_UI.DebugPlaneNormal.y, m_UI.DebugPlaneNormal.z);
+		ImGui::DragFloat3("Plane Origin", &m_UI.DebugPlaneOrigin.x, 0.1f);
+		{
+			float azimuth, elevation, distance;
+			cartesianToSpherical(m_UI.DebugPlaneNormal, azimuth, elevation, distance);
+			ImGui::SliderAngle("Plane Azimuth", &azimuth, -179.0f, 180.0f, "%.1f deg");
+			ImGui::SliderAngle("Plane Elevation", &elevation, -89.9f, 89.9f, "%.1f deg");
+			m_UI.DebugPlaneNormal = sphericalToCartesian(azimuth, elevation, distance);
+		}
 	}
 
 	ImGui::End();

@@ -87,7 +87,7 @@ struct UIData;
 class PrimaryViewTerrainTessellationPass : public ITerrainTessellationPass
 {
 public:
-    PrimaryViewTerrainTessellationPass(nvrhi::DeviceHandle device, std::shared_ptr<donut::engine::CommonRenderPasses> commonPasses, UIData& ui);
+    PrimaryViewTerrainTessellationPass(nvrhi::DeviceHandle device, std::shared_ptr<donut::engine::CommonRenderPasses> commonPasses);
 
     void Init(donut::engine::ShaderFactory& shaderFactory) override;
 
@@ -105,8 +105,6 @@ private:
     nvrhi::BindingSetHandle FindOrCreateBindingSet(const TerrainMeshView* key);
 
 private:
-	UIData& m_UI;
-
     nvrhi::ShaderHandle m_SplitShader, m_MergeShader;
     nvrhi::ComputePipelineHandle m_SplitPipeline, m_MergePipeline;
 
