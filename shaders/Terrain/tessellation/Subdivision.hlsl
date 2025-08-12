@@ -91,7 +91,7 @@ float LevelOfDetail(float3 patchVertices_WorldSpace[3])
     {
 	    return 0.0f;
     }
-
+    return 1.1f;
     return TriangleLevelOfDetail(patchVertices_WorldSpace);
 }
 
