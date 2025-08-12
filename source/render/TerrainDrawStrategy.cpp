@@ -14,6 +14,7 @@ void TerrainDrawStrategy::PrepareForView(const std::shared_ptr<donut::engine::Sc
 	const PlanarViewEx& viewEx = dynamic_cast<const PlanarViewEx&>(view);
 
 	m_Walker = donut::engine::SceneGraphWalker(rootNode.get());
+	const auto& viewFrustum = view.GetViewFrustum();
 
 	while (m_Walker)
 	{
@@ -21,9 +22,11 @@ void TerrainDrawStrategy::PrepareForView(const std::shared_ptr<donut::engine::Sc
 		bool subgraphContentsRelevant = (m_Walker->GetSubgraphContentFlags() & relevantContentFlags) != donut::engine::SceneContentFlags::None;
 		bool nodeContentsRelevant = (m_Walker->GetLeafContentFlags() & relevantContentFlags) != 0;
 
+		bool nodeVisible = false;
 		if (subgraphContentsRelevant)
 		{
-			// TODO: Frustum test
+			nodeVisible = viewFrustum.intersectsWith(m_Walker->GetGlobalBoundingBox());
+
 			if (nodeContentsRelevant)
 			{
 				if (auto terrainInstance = dynamic_cast<TerrainMeshInstance*>(m_Walker->GetLeaf().get()))
@@ -42,8 +45,7 @@ void TerrainDrawStrategy::PrepareForView(const std::shared_ptr<donut::engine::Sc
 			}
 		}
 
-		// TODO: Only allow children if node is visible
-		m_Walker.Next(true);
+		m_Walker.Next(nodeVisible);
 	}
 
 	m_NextItem = m_DrawItems.begin();
