@@ -282,12 +282,6 @@ void PrimaryViewTerrainTessellationPass::SetupView(nvrhi::ICommandList* commandL
 		assert(false);
 	}
 
-	// View frustum can be inflated slightly to tessellate slightly beyond the view, to stop any popping around the view edges
-	for (auto& plane : constants.viewEx.viewFrustum)
-	{
-		plane.w += 2.0f; // 2 units was deemed to be suitable amount
-	}
-
 	// Calculate LOD factor
 	{
 		// constants.view.matViewToClip.m11 == tan(fovy / 2)

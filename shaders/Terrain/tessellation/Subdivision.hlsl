@@ -76,22 +76,13 @@ float TriangleLevelOfDetail(float3 patchVertices_WorldSpace[3])
     return TriangleLevelOfDetail_Perspective(patchVertices_WorldSpace);
 }
 
-bool FrustumCullingTest(float3 patchVertices_WorldSpace[3])
-{
-    float3 bmin = min(min(patchVertices_WorldSpace[0].xyz, patchVertices_WorldSpace[1].xyz), patchVertices_WorldSpace[2].xyz);
-    float3 bmax = max(max(patchVertices_WorldSpace[0].xyz, patchVertices_WorldSpace[1].xyz), patchVertices_WorldSpace[2].xyz);
-
-    return FrustumCullingTest(c_Subdivision.viewEx.viewFrustum, bmin, bmax);
-}
-
 float LevelOfDetail(float3 patchVertices_WorldSpace[3])
 {
 	// Frustum culling
-    if (!FrustumCullingTest(patchVertices_WorldSpace))
+    if (!FrustumCullingTest(c_Subdivision.viewEx.viewFrustum, patchVertices_WorldSpace))
     {
 	    return 0.0f;
     }
-    return 1.1f;
     return TriangleLevelOfDetail(patchVertices_WorldSpace);
 }
 

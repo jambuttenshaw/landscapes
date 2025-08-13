@@ -47,7 +47,6 @@ void gbuffer_vs(
 								  float2(1, 0));
     posMatrix = leb_DecodeAttributeArray(node, posMatrix);
 
-    //float2 texCoord = float2(posMatrix[i_vertex][0], posMatrix[i_vertex][1]);
     float2 texCoord = posMatrix[i_vertex];
 
     float2 pos = (texCoord - 0.5f) * c_Terrain.TerrainExtentsAndInvExtents.xy;

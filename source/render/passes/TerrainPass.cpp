@@ -5,6 +5,7 @@
 #include <donut/engine/ShaderFactory.h>
 #include <nvrhi/utils.h>
 
+#include "engine/ViewEx.h"
 #include "render/TerrainDrawStrategy.h"
 #include "terrain/Terrain.h"
 
