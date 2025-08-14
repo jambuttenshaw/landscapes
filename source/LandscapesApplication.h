@@ -36,6 +36,7 @@ public:
 
 	bool KeyboardUpdate(int key, int scancode, int action, int mods) override;
 	bool MousePosUpdate(double xpos, double ypos) override;
+	bool MouseScrollUpdate(double xoffset, double yoffset) override;
 	bool MouseButtonUpdate(int button, int action, int mods) override;
 
 	void Animate(float fElapsedTimeSeconds) override;

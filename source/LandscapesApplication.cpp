@@ -60,7 +60,7 @@ bool LandscapesApplication::Init()
     m_CommandList = GetDevice()->createCommandList();
 
     m_Camera.LookAt(float3{ 0.0f, 250.0f, 0.0f }, float3{ 0.0f, 0.f, 0.0f }, float3{ 0.0f, 0.0f, 1.0f });
-    m_Camera.SetMoveSpeed(75.0f);
+    m_Camera.SetMoveSpeed(250.0f);
 
     m_CommandList->open();
 
@@ -114,6 +114,11 @@ bool LandscapesApplication::MousePosUpdate(double xpos, double ypos)
 {
     m_Camera.MousePosUpdate(xpos, ypos);
 	return true;
+}
+
+bool LandscapesApplication::MouseScrollUpdate(double xoffset, double yoffset)
+{
+    return true;
 }
 
 bool LandscapesApplication::MouseButtonUpdate(int button, int action, int mods)
