@@ -2,23 +2,23 @@
 
 #include <donut/engine/TextureCache.h>
 #include <donut/engine/SceneGraph.h>
+#include <donut/engine/ShaderFactory.h>
 
 #include "terrain/Terrain.h"
 
 
 struct UIData;
-struct InstanceData;
+
+class PrimaryViewTerrainTessellationPass;
+
 
 class LandscapesScene
 {
 public:
-    LandscapesScene(UIData& ui, nvrhi::DeviceHandle device);
+    LandscapesScene(UIData& ui, nvrhi::IDevice* device, donut::engine::ShaderFactory& shaderFactory, std::shared_ptr<donut::engine::CommonRenderPasses> commonPasses);
 	bool Init(nvrhi::ICommandList* commandList, donut::engine::TextureCache* textureCache);
 
     inline const std::shared_ptr<donut::engine::SceneGraph>& GetSceneGraph() const { return m_SceneGraph; }
-    inline const std::vector<std::shared_ptr<donut::engine::Light>>& GetLights() const { return m_SceneGraph->GetLights(); }
-    inline const std::shared_ptr<TerrainMeshInstance>& GetTerrainInstance() const { return m_TerrainInstance; }
-
 
     void Animate(float deltaTime);
 
@@ -45,4 +45,6 @@ private:
 
     std::shared_ptr<TerrainMeshInfo> m_Terrain;
     std::shared_ptr<TerrainMeshInstance> m_TerrainInstance;
+
+    std::shared_ptr<PrimaryViewTerrainTessellationPass> m_TerrainTessellationPass_PrimaryView;
 };

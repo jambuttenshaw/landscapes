@@ -10,11 +10,15 @@ using namespace donut::math;
 
 
 class TerrainMeshInstance;
+class ITerrainTessellationPass;
 
 struct TerrainMeshViewDesc
 {
 	uint MaxDepth = 8;
 	uint InitDepth = 1;
+
+	// Optional - if null, tessellation of terrain mesh will not be updated
+	std::weak_ptr<ITerrainTessellationPass> TessellationScheme;
 };
 
 class TerrainMeshView
@@ -30,6 +34,8 @@ public:
 
 	[[nodiscard]] inline nvrhi::IBuffer* GetIndirectArgsBuffer() const { return m_IndirectArgsBuffer; }
 
+	[[nodiscard]] inline std::weak_ptr<ITerrainTessellationPass> GetTessellationScheme() const { return m_TessellationScheme; }
+
 	[[nodiscard]] inline static uint GetIndirectArgsDispatchOffset() { return 0; }
 	[[nodiscard]] inline static uint GetIndirectArgsDrawOffset() { return sizeof(nvrhi::DispatchIndirectArguments); }
 
@@ -40,6 +46,8 @@ protected:
 	uint m_InitDepth = 1;
 	nvrhi::BufferHandle m_CBTBuffer;
 	nvrhi::BufferHandle m_IndirectArgsBuffer;
+
+	std::weak_ptr<ITerrainTessellationPass> m_TessellationScheme;
 };
 
 

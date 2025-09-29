@@ -12,10 +12,11 @@ using namespace donut::math;
 
 #include "TerrainShaders.h"
 
-TerrainMeshView::TerrainMeshView(const TerrainMeshInstance* instance, const TerrainMeshViewDesc& desc)
-	: m_Instance(instance)
+TerrainMeshView::TerrainMeshView(const TerrainMeshInstance* parent, const TerrainMeshViewDesc& desc)
+	: m_Instance(parent)
 	, m_MaxDepth(desc.MaxDepth)
 	, m_InitDepth(desc.InitDepth)
+	, m_TessellationScheme(desc.TessellationScheme)
 {
 }
 

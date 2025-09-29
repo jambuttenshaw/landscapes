@@ -2,10 +2,13 @@
 
 #include <nvrhi/utils.h>
 
+#include "donut/render/DrawStrategy.h"
+
 #include "Terrain.h"
 #include "TerrainShaders.h"
 #include "UserInterface.h"
 #include "engine/ViewEx.h"
+#include "render/TerrainDrawStrategy.h"
 
 
 ITerrainTessellationPass::ITerrainTessellationPass(nvrhi::DeviceHandle device, std::shared_ptr<donut::engine::CommonRenderPasses> commonPasses)
@@ -327,4 +330,39 @@ nvrhi::BindingSetHandle PrimaryViewTerrainTessellationPass::FindOrCreateBindingS
 		m_TerrainBindingSets[key] = bindingSet;
 	}
 	return bindingSet;
+}
+
+
+void TessellateTerrainView(
+	nvrhi::ICommandList* commandList,
+	const donut::engine::IView* view,
+	const std::shared_ptr<donut::engine::SceneGraphNode>& rootNode,
+	donut::render::IDrawStrategy& drawStrategy,
+	TerrainTessellator& tessellator
+)
+{
+	commandList->beginMarker("Tessellate Terrain View");
+
+	drawStrategy.PrepareForView(rootNode, *view);
+
+	while (auto abstractDrawItem = drawStrategy.GetNextItem())
+	{
+		// TODO: This is not safe.
+		auto drawItem = reinterpret_cast<const TerrainDrawItem*>(abstractDrawItem);
+		if (!drawItem)
+			continue;
+
+		// If tessellation scheme of terrain view was never set, then the returned shared_ptr will be empty (and evaluate to false)
+		if (auto pass = drawItem->terrainView->GetTessellationScheme().lock())
+		{
+			tessellator.ExecutePassForTerrainView(
+				commandList,
+				view,
+				*pass,
+				drawItem->terrainView
+			);
+		}
+	}
+
+	commandList->endMarker();
 }

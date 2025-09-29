@@ -259,7 +259,8 @@ void RenderTerrainView(
 
 	while (auto abstractDrawItem = drawStrategy.GetNextItem())
 	{
-		auto drawItem = static_cast<const TerrainDrawItem*>(abstractDrawItem);
+		// TODO: This is not safe.
+		auto drawItem = reinterpret_cast<const TerrainDrawItem*>(abstractDrawItem);
 		if (!drawItem)
 			continue;
 

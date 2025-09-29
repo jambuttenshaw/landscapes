@@ -1,24 +1,31 @@
 #include "LandscapesScene.h"
 
-#include <donut/app/ApplicationBase.h>
 #include <nvrhi/common/misc.h>
 
+#include <donut/app/ApplicationBase.h>
+#include <donut/shaders/bindless.h>
+
 #include "UserInterface.h"
+#include "terrain/TerrainTessellation.h"
 
 using namespace donut;
 using namespace donut::math;
 
-#include <donut/shaders/bindless.h>
 
 struct LandscapesScene::Resources
 {
     std::vector<InstanceData> instanceData;
 };
 
-LandscapesScene::LandscapesScene(UIData& ui, nvrhi::DeviceHandle device)
+LandscapesScene::LandscapesScene(UIData& ui, nvrhi::IDevice* device, donut::engine::ShaderFactory& shaderFactory, std::shared_ptr<donut::engine::CommonRenderPasses> commonPasses)
 	: m_UI(ui)
-	, m_Device(std::move(device))
+	, m_Device(device)
 {
+    m_TerrainTessellationPass_PrimaryView = std::make_shared<PrimaryViewTerrainTessellationPass>(device, commonPasses);
+    m_TerrainTessellationPass_PrimaryView->Init(shaderFactory);
+
+    m_UI.TerrainSubdivisionLevel = static_cast<int>(m_TerrainTessellationPass_PrimaryView->GetSubdivisionLevel());
+    m_UI.TerrainPrimitivePixelLength = m_TerrainTessellationPass_PrimaryView->GetPrimitivePixelLength();
 }
 
 bool LandscapesScene::Init(nvrhi::ICommandList* commandList, donut::engine::TextureCache* textureCache)
@@ -36,7 +43,7 @@ bool LandscapesScene::Init(nvrhi::ICommandList* commandList, donut::engine::Text
         createParams.HeightmapExtents = { 262.28f, 262.28f };
         createParams.HeightmapHeightScale = 155.23f;
         createParams.HeightmapTexturePath = app::GetDirectoryWithExecutable().parent_path() / "media/test_heightmap.png";
-        createParams.Views.emplace_back(TerrainMeshViewDesc{ .MaxDepth = 20, .InitDepth = 10});
+        createParams.Views.emplace_back(TerrainMeshViewDesc{ .MaxDepth = 20, .InitDepth = 10, .TessellationScheme = m_TerrainTessellationPass_PrimaryView });
         m_Terrain = std::make_shared<TerrainMeshInfo>(m_Device, commandList, textureCache, createParams);
 
         auto terrainNode = std::make_shared<engine::SceneGraphNode>();
@@ -63,6 +70,9 @@ bool LandscapesScene::Init(nvrhi::ICommandList* commandList, donut::engine::Text
 void LandscapesScene::Animate(float deltaTime)
 {
     m_SunLight->SetDirection(static_cast<double3>(m_UI.LightDirection));
+
+    m_TerrainTessellationPass_PrimaryView->SetSubdivisionLevel(static_cast<uint32_t>(m_UI.TerrainSubdivisionLevel));
+    m_TerrainTessellationPass_PrimaryView->SetPrimitivePixelLength(m_UI.TerrainPrimitivePixelLength);
 }
 
 void LandscapesScene::Refresh(nvrhi::ICommandList* commandList, uint frameIndex)

@@ -19,7 +19,6 @@ const char* g_WindowTitle = "Landscapes";
 LandscapesApplication::LandscapesApplication(donut::app::DeviceManager* deviceManager, UIData& ui)
 	: ApplicationBase(deviceManager)
 	, m_UI(ui)
-	, m_Scene(ui, GetDevice())
 {
 }
 
@@ -51,12 +50,6 @@ bool LandscapesApplication::Init()
     m_TerrainTessellator = std::make_unique<TerrainTessellator>(GetDevice());
     m_TerrainTessellator->Init(*m_ShaderFactory);
 
-    m_TessellationPass_PrimaryView = std::make_unique<PrimaryViewTerrainTessellationPass>(GetDevice(), m_CommonPasses);
-    m_TessellationPass_PrimaryView->Init(*m_ShaderFactory);
-
-    m_UI.TerrainSubdivisionLevel = static_cast<int>(m_TessellationPass_PrimaryView->GetSubdivisionLevel());
-    m_UI.TerrainPrimitivePixelLength = m_TessellationPass_PrimaryView->GetPrimitivePixelLength();
-
     m_CommandList = GetDevice()->createCommandList();
 
     m_Camera.LookAt(float3{ 0.0f, 250.0f, 0.0f }, float3{ 0.0f, 0.f, 0.0f }, float3{ 0.0f, 0.0f, 1.0f });
@@ -64,7 +57,8 @@ bool LandscapesApplication::Init()
 
     m_CommandList->open();
 
-    bool success = m_Scene.Init(m_CommandList, m_TextureCache.get());
+    m_Scene = std::make_unique<LandscapesScene>(m_UI, GetDevice(), *m_ShaderFactory, m_CommonPasses);
+    bool success = m_Scene->Init(m_CommandList, m_TextureCache.get());
 
     m_CommandList->close();
     GetDevice()->executeCommandList(m_CommandList);
@@ -127,12 +121,9 @@ void LandscapesApplication::Animate(float fElapsedTimeSeconds)
     m_Camera.Animate(fElapsedTimeSeconds);
 	GetDeviceManager()->SetInformativeWindowTitle(g_WindowTitle);
 
-    m_Scene.Animate(fElapsedTimeSeconds);
+    m_Scene->Animate(fElapsedTimeSeconds);
 
     m_UI.CameraPosition = m_Camera.GetPosition();
-
-    m_TessellationPass_PrimaryView->SetSubdivisionLevel(static_cast<uint32_t>(m_UI.TerrainSubdivisionLevel));
-    m_TessellationPass_PrimaryView->SetPrimitivePixelLength(m_UI.TerrainPrimitivePixelLength);
 }
 
 void LandscapesApplication::BackBufferResizing()
@@ -177,23 +168,20 @@ void LandscapesApplication::Render(nvrhi::IFramebuffer* framebuffer)
 
     m_CommandList->open();
 
-    m_Scene.Refresh(m_CommandList, GetFrameIndex());
+    m_Scene->Refresh(m_CommandList, GetFrameIndex());
 
     m_GBuffer->Clear(m_CommandList);
 
     // Update terrain
     if (m_UI.UpdateTerrain)
 	{
-        // TODO: Think about how I want to get references to the terrain
-        // Should terrain views keep track of which tessellation pass to use?
-        // Then I can walk the scene graph to find terrain views, and know what pass to use
-        const auto& terrain = m_Scene.GetTerrainInstance();
-
-        m_TerrainTessellator->ExecutePassForTerrainView(
-            m_CommandList,
+        TerrainDrawStrategy drawStrategy;
+        TessellateTerrainView(
+			m_CommandList,
             &m_View,
-            *m_TessellationPass_PrimaryView,
-            terrain->GetTerrainView(0)
+            m_Scene->GetSceneGraph()->GetRootNode(),
+            drawStrategy,
+            *m_TerrainTessellator
         );
     }
     // Draw terrain
@@ -208,7 +196,7 @@ void LandscapesApplication::Render(nvrhi::IFramebuffer* framebuffer)
             &m_View,
             &m_View,
             m_GBuffer->GBufferFramebuffer->GetFramebuffer(m_View),
-            m_Scene.GetSceneGraph()->GetRootNode(),
+            m_Scene->GetSceneGraph()->GetRootNode(),
             drawStrategy,
             *m_TerrainGBufferPass,
             context
@@ -230,7 +218,7 @@ void LandscapesApplication::Render(nvrhi::IFramebuffer* framebuffer)
     deferredInputs.SetGBuffer(*m_GBuffer);
     deferredInputs.ambientColorTop = 0.0f;
     deferredInputs.ambientColorBottom = deferredInputs.ambientColorTop * float3(0.3f, 0.4f, 0.3f);
-    deferredInputs.lights = &m_Scene.GetLights();
+    deferredInputs.lights = &m_Scene->GetSceneGraph()->GetLights();
     deferredInputs.output = m_ShadedColour;
 
     m_DeferredLightingPass->Render(m_CommandList, m_View, deferredInputs);

@@ -6,6 +6,16 @@
 #include "donut/engine/CommonRenderPasses.h"
 
 
+namespace donut::render
+{
+	class IDrawStrategy;
+}
+
+namespace donut::engine
+{
+	class SceneGraphNode;
+}
+
 class TerrainMeshView;
 
 
@@ -119,3 +129,16 @@ private:
     uint32_t m_SubdivisionLevel = 2;
     float m_PrimitivePixelLength = 5.0f;
 };
+
+
+// Tessellates terrains for a given view
+//  The draw strategy feeds the terrain instances
+//  Each terrain instance knows the tessellation scheme to be used
+//  The tessellator knows how to execute the tessellation pipeline
+void TessellateTerrainView(
+    nvrhi::ICommandList* commandList,
+    const donut::engine::IView* view,
+    const std::shared_ptr<donut::engine::SceneGraphNode>& rootNode,
+    donut::render::IDrawStrategy& drawStrategy,
+    TerrainTessellator& tessellator
+);
