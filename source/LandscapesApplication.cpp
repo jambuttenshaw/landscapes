@@ -20,6 +20,8 @@ LandscapesApplication::LandscapesApplication(donut::app::DeviceManager* deviceMa
 	: ApplicationBase(deviceManager)
 	, m_UI(ui)
 {
+    SetAsynchronousLoadingEnabled(false);
+
     m_NativeFS = std::make_shared<vfs::NativeFileSystem>();
 
     std::filesystem::path appShaderPath = app::GetDirectoryWithExecutable() / "shaders/landscapes" / app::GetShaderTypeName(GetDevice()->getGraphicsAPI());
@@ -52,7 +54,7 @@ LandscapesApplication::LandscapesApplication(donut::app::DeviceManager* deviceMa
     m_Camera.SetMoveSpeed(75.0f);
 
     // TODO: Avoid calling virtual function in constructor
-    //BeginLoadingScene(m_NativeFS, "");
+    BeginLoadingScene(m_NativeFS, app::GetDirectoryWithExecutable().parent_path() / "media/landscapes.scene.json");
 }
 
 void LandscapesApplication::CreateDeferredShadingOutput(nvrhi::IDevice* device, dm::uint2 size, dm::uint sampleCount)
@@ -99,11 +101,7 @@ bool LandscapesApplication::LoadScene(std::shared_ptr<vfs::IFileSystem> fs, cons
         nullptr, 
         nullptr);
 
-    if (sceneFileName.empty())
-    {
-	    return false;
-    }
-    else if (scene->Load(sceneFileName))
+	if (scene->Load(sceneFileName))
     {
 	    m_Scene = std::move(scene);
         return true;
@@ -152,7 +150,7 @@ void LandscapesApplication::BackBufferResizing()
 
 }
 
-void LandscapesApplication::Render(nvrhi::IFramebuffer* framebuffer)
+void LandscapesApplication::RenderScene(nvrhi::IFramebuffer* framebuffer)
 {
 	if (!m_Scene)
 	{
@@ -199,6 +197,7 @@ void LandscapesApplication::Render(nvrhi::IFramebuffer* framebuffer)
 
     m_GBuffer->Clear(m_CommandList);
 
+    /*
     // Update terrain
     if (m_UI.UpdateTerrain)
 	{
@@ -240,6 +239,7 @@ void LandscapesApplication::Render(nvrhi::IFramebuffer* framebuffer)
             m_UI.DebugPlaneOrigin
         );
     }
+	*/
 
     render::DeferredLightingPass::Inputs deferredInputs;
     deferredInputs.SetGBuffer(*m_GBuffer);

@@ -52,7 +52,7 @@ void DebugPlanePass::Render(nvrhi::ICommandList* commandList, const donut::engin
 				? nvrhi::ComparisonFunc::GreaterOrEqual
 				: nvrhi::ComparisonFunc::LessOrEqual);
 
-		m_Pipeline = m_Device->createGraphicsPipeline(pipelineDesc, framebuffer);
+		m_Pipeline = m_Device->createGraphicsPipeline(pipelineDesc, framebuffer->getFramebufferInfo());
 	}
 
 	DebugPlaneConstants constants;

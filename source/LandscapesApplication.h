@@ -41,7 +41,7 @@ public:
 	void Animate(float fElapsedTimeSeconds) override;
 	void BackBufferResizing() override;
 
-	void Render(nvrhi::IFramebuffer* framebuffer) override;
+	void RenderScene(nvrhi::IFramebuffer* framebuffer) override;
 
 
 	inline std::shared_ptr<donut::engine::ShaderFactory> GetShaderFactory() const { return m_ShaderFactory; }

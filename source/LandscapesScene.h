@@ -25,9 +25,11 @@ public:
         std::shared_ptr<donut::engine::DescriptorTableManager> descriptorTable,
         std::shared_ptr<donut::engine::SceneTypeFactory> sceneTypeFactory);
 
+protected:
 
-    // Called when scene finished loading
     virtual void CreateMeshBuffers(nvrhi::ICommandList* commandList) override;
+
+    virtual bool LoadCustomData(Json::Value& rootNode, tf::Executor* executor) override;
 
 private:
     UIData& m_UI;

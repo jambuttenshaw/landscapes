@@ -29,24 +29,30 @@ LandscapesScene::LandscapesScene(
 {
 }
 
-//    TerrainMeshInfo::CreateParams createParams{};
-//    createParams.HeightmapResolution = { 1024, 1024 };
-//    createParams.HeightmapExtents = { 262.28f, 262.28f };
-//    createParams.HeightmapHeightScale = 155.23f;
-//    createParams.HeightmapTexturePath = app::GetDirectoryWithExecutable().parent_path() / "media/test_heightmap.png";
-//    createParams.Views.emplace_back(TerrainMeshViewDesc{ .MaxDepth = 20, .InitDepth = 10, .TessellationScheme = m_TerrainTessellationPass_PrimaryView });
-//    m_Terrain = std::make_shared<TerrainMeshInfo>(m_Device, commandList, textureCache, createParams);
-//
-//    auto terrainNode = std::make_shared<engine::SceneGraphNode>();
-//    m_SceneGraph->Attach(rootNode, terrainNode);
-//    terrainNode->SetName("TerrainNode");
-//
-//    m_TerrainInstance = std::make_shared<TerrainMeshInstance>(m_Terrain);
-//    m_TerrainInstance->Init(m_Device, commandList);
-//    terrainNode->SetLeaf(m_TerrainInstance);
-//    m_TerrainInstance->SetName("TerrainMeshInstance");
-
 void LandscapesScene::CreateMeshBuffers(nvrhi::ICommandList* commandList)
 {
-	
+    Scene::CreateMeshBuffers(commandList);
+
+    // Create and populate buffers for terrain mesh data (initialize CBTs)
+}
+
+bool LandscapesScene::LoadCustomData(Json::Value& rootNode, tf::Executor* executor)
+{
+    TerrainMeshInfo::CreateParams createParams{};
+    createParams.HeightmapResolution = { 1024, 1024 };
+    createParams.HeightmapExtents = { 262.28f, 262.28f };
+    createParams.HeightmapHeightScale = 155.23f;
+    createParams.HeightmapTexturePath = app::GetDirectoryWithExecutable().parent_path() / "media/test_heightmap.png";
+    createParams.Views.emplace_back(TerrainMeshViewDesc{ .MaxDepth = 20, .InitDepth = 10, .TessellationScheme{} });
+    auto terrainMesh = std::make_shared<TerrainMeshInfo>(*m_TextureCache, createParams);
+
+    auto terrainNode = std::make_shared<engine::SceneGraphNode>();
+    m_SceneGraph->Attach(m_SceneGraph->GetRootNode(), terrainNode);
+    terrainNode->SetName("TerrainNode");
+
+    auto terrainInstance = std::make_shared<TerrainMeshInstance>(terrainMesh);
+    terrainNode->SetLeaf(terrainInstance);
+    terrainInstance->SetName("TerrainMeshInstance");
+
+    return true;
 }

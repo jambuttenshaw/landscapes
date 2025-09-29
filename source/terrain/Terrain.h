@@ -68,11 +68,11 @@ public:
 	};
 
 	TerrainMeshInfo(
-		nvrhi::IDevice* device,
-		nvrhi::ICommandList* commandList,
-		donut::engine::TextureCache* textureCache,
+		donut::engine::TextureCache& textureCache,
 		const CreateParams& params
 	);
+
+	void Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandList);
 
 	[[nodiscard]] inline float2 GetExtents() const { return m_HeightmapExtents; }
 	[[nodiscard]] inline float GetHeightScale() const { return m_HeightmapHeightScale; }
@@ -80,7 +80,7 @@ public:
 	[[nodiscard]] inline size_t GetNumTerrainViews() const { return m_TerrainViews.size(); }
 	[[nodiscard]] inline const TerrainMeshViewDesc& GetTerrainViewDesc(size_t viewIndex) const { return m_TerrainViews.at(viewIndex); }
 
-	[[nodiscard]] nvrhi::TextureHandle GetHeightmapTexture() const { return m_HeightmapTexture; }
+	[[nodiscard]] nvrhi::TextureHandle GetHeightmapTexture() const { return m_HeightmapTexture->texture; }
 	[[nodiscard]] nvrhi::BufferHandle GetConstantBuffer() const { return m_TerrainCB; }
 
 private:
@@ -97,7 +97,7 @@ private:
 	std::vector<TerrainMeshViewDesc> m_TerrainViews;
 
 	// GPU resources
-	nvrhi::TextureHandle m_HeightmapTexture;
+	std::shared_ptr<donut::engine::LoadedTexture> m_HeightmapTexture;
 	nvrhi::BufferHandle m_TerrainCB;
 };
 

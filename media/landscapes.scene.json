@@ -1,0 +1,11 @@
+{
+	"models": [
+		"test_cube.glb"
+	],
+	"graph": [
+		{
+			"name": "Cube",
+			"model": 0
+		}
+	]
+}

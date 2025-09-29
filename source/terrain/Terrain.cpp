@@ -70,11 +70,9 @@ void TerrainMeshView::Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandL
 }
 
 
-TerrainMeshInfo::TerrainMeshInfo(nvrhi::IDevice* device, nvrhi::ICommandList* commandList, donut::engine::TextureCache* textureCache, const CreateParams& params)
+TerrainMeshInfo::TerrainMeshInfo(donut::engine::TextureCache& textureCache, const CreateParams& params)
 	: m_TerrainViews(params.Views)
 {
-	assert(device && commandList && textureCache);
-
 	buffers = std::make_shared<engine::BufferGroup>();
 
 	m_HeightmapExtents = params.HeightmapExtents;
@@ -85,19 +83,12 @@ TerrainMeshInfo::TerrainMeshInfo(nvrhi::IDevice* device, nvrhi::ICommandList* co
 	// Load textures for the terrain
 	if (!params.HeightmapTexturePath.empty())
 	{
-		std::shared_ptr<engine::LoadedTexture> heightmapTexture = textureCache->LoadTextureFromFile(params.HeightmapTexturePath, true, nullptr, commandList);
-		m_HeightmapTexture = heightmapTexture->texture;
-
-		if (!heightmapTexture->texture)
-		{
-			log::error("Couldn't load the texture");
-			assert(false);
-		}
+		m_HeightmapTexture = textureCache.LoadTextureFromFileDeferred(params.HeightmapTexturePath, true);
 	}
+}
 
-	// Create views
-	assert(!m_TerrainViews.empty());
-
+void TerrainMeshInfo::Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandList)
+{
 	// Create constant buffer
 	m_TerrainCB = device->createBuffer(nvrhi::utils::CreateStaticConstantBufferDesc(
 		sizeof(TerrainConstants), "TerrainConstants"

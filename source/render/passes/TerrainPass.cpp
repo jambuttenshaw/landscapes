@@ -210,7 +210,7 @@ nvrhi::GraphicsPipelineHandle TerrainGBufferFillPass::CreateGraphicsPipeline(Pip
 			? nvrhi::ComparisonFunc::GreaterOrEqual
 			: nvrhi::ComparisonFunc::LessOrEqual);
 
-	return m_Device->createGraphicsPipeline(pipelineDesc, sampleFramebuffer);
+	return m_Device->createGraphicsPipeline(pipelineDesc, sampleFramebuffer->getFramebufferInfo());
 }
 
 
