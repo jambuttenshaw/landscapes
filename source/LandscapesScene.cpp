@@ -32,15 +32,11 @@ bool LandscapesScene::Init(nvrhi::ICommandList* commandList, donut::engine::Text
 
     {
         TerrainMeshInfo::CreateParams createParams{};
-        //createParams.HeightmapResolution = { 1024, 1024 };
-        //createParams.HeightmapExtents = { 262.28f, 262.28f };
-        //createParams.HeightmapHeightScale = 155.23f;
-        //createParams.HeightmapTexturePath = app::GetDirectoryWithExecutable().parent_path() / "media/test_heightmap.png";
-        createParams.HeightmapResolution = { 4096, 4096 };
-        createParams.HeightmapExtents = 1084.977f / 0.101f;
-        createParams.HeightmapHeightScale = 1084.977f;
-        createParams.HeightmapTexturePath = app::GetDirectoryWithExecutable().parent_path() / "media/test_heightmap2.png";
-        createParams.Views.emplace_back(TerrainMeshViewDesc{ .MaxDepth = 24, .InitDepth = 10});
+        createParams.HeightmapResolution = { 2048, 2048 };
+        createParams.HeightmapExtents = 942.129f / 0.18f;
+        createParams.HeightmapHeightScale = 942.129f;
+        createParams.HeightmapTexturePath = app::GetDirectoryWithExecutable().parent_path() / "media/beinn_alligin.png";
+        createParams.Views = { TerrainMeshViewDesc{ .MaxDepth = 24, .InitDepth = 10 }};
         m_Terrain = std::make_shared<TerrainMeshInfo>(m_Device, commandList, textureCache, createParams);
 
         auto terrainNode = std::make_shared<engine::SceneGraphNode>();

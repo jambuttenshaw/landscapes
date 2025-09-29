@@ -84,7 +84,7 @@ TerrainMeshInfo::TerrainMeshInfo(nvrhi::IDevice* device, nvrhi::ICommandList* co
 	// Load textures for the terrain
 	if (!params.HeightmapTexturePath.empty())
 	{
-		std::shared_ptr<engine::LoadedTexture> heightmapTexture = textureCache->LoadTextureFromFile(params.HeightmapTexturePath, true, nullptr, commandList);
+		std::shared_ptr<engine::LoadedTexture> heightmapTexture = textureCache->LoadTextureFromFile(params.HeightmapTexturePath, false, nullptr, commandList);
 		m_HeightmapTexture = heightmapTexture->texture;
 
 		if (!heightmapTexture->texture)
