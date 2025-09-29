@@ -30,9 +30,9 @@ public:
 
 	LandscapesApplication(donut::app::DeviceManager* deviceManager, UIData& ui);
 
-	bool Init();
-
-	bool LoadScene(std::shared_ptr<donut::vfs::IFileSystem> fs, const std::filesystem::path& sceneFileName) override;
+	virtual void SceneUnloading() override;
+	virtual bool LoadScene(std::shared_ptr<donut::vfs::IFileSystem> fs, const std::filesystem::path& sceneFileName) override;
+	virtual void SceneLoaded() override;
 
 	bool KeyboardUpdate(int key, int scancode, int action, int mods) override;
 	bool MousePosUpdate(double xpos, double ypos) override;
@@ -53,6 +53,8 @@ private:
 
 private:
 	UIData& m_UI;
+
+	std::shared_ptr<donut::vfs::NativeFileSystem> m_NativeFS;
 
 	std::shared_ptr<donut::engine::ShaderFactory> m_ShaderFactory;
 	std::unique_ptr<donut::engine::BindingCache> m_BindingCache;

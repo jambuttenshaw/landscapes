@@ -20,11 +20,7 @@ LandscapesApplication::LandscapesApplication(donut::app::DeviceManager* deviceMa
 	: ApplicationBase(deviceManager)
 	, m_UI(ui)
 {
-}
-
-bool LandscapesApplication::Init()
-{
-    auto nativeFS = std::make_shared<vfs::NativeFileSystem>();
+    m_NativeFS = std::make_shared<vfs::NativeFileSystem>();
 
     std::filesystem::path appShaderPath = app::GetDirectoryWithExecutable() / "shaders/landscapes" / app::GetShaderTypeName(GetDevice()->getGraphicsAPI());
     std::filesystem::path frameworkShaderPath = app::GetDirectoryWithExecutable() / "shaders/framework" / app::GetShaderTypeName(GetDevice()->getGraphicsAPI());
@@ -35,7 +31,7 @@ bool LandscapesApplication::Init()
 
     m_ShaderFactory = std::make_shared<engine::ShaderFactory>(GetDevice(), rootFS, "/shaders");
     m_CommonPasses = std::make_shared<engine::CommonRenderPasses>(GetDevice(), m_ShaderFactory);
-    m_TextureCache = std::make_shared<engine::TextureCache>(GetDevice(), nativeFS, nullptr);
+    m_TextureCache = std::make_shared<engine::TextureCache>(GetDevice(), m_NativeFS, nullptr);
     m_BindingCache = std::make_unique<engine::BindingCache>(GetDevice());
 
     m_DeferredLightingPass = std::make_unique<render::DeferredLightingPass>(GetDevice(), m_CommonPasses);
@@ -55,15 +51,8 @@ bool LandscapesApplication::Init()
     m_Camera.LookAt(float3{ 0.0f, 250.0f, 0.0f }, float3{ 0.0f, 0.f, 0.0f }, float3{ 0.0f, 0.0f, 1.0f });
     m_Camera.SetMoveSpeed(75.0f);
 
-    m_CommandList->open();
-
-    m_Scene = std::make_unique<LandscapesScene>(m_UI, GetDevice(), *m_ShaderFactory, m_CommonPasses);
-    bool success = m_Scene->Init(m_CommandList, m_TextureCache.get());
-
-    m_CommandList->close();
-    GetDevice()->executeCommandList(m_CommandList);
-
-	return success;
+    // TODO: Avoid calling virtual function in constructor
+    //BeginLoadingScene(m_NativeFS, "");
 }
 
 void LandscapesApplication::CreateDeferredShadingOutput(nvrhi::IDevice* device, dm::uint2 size, dm::uint sampleCount)
@@ -93,9 +82,43 @@ void LandscapesApplication::CreateGBufferPasses()
     m_TerrainGBufferPass->Init(*m_ShaderFactory);
 }
 
+void LandscapesApplication::SceneUnloading()
+{
+	// Reset binding caches
+    // Clear any references to objects in the scene
+}
+
 bool LandscapesApplication::LoadScene(std::shared_ptr<vfs::IFileSystem> fs, const std::filesystem::path& sceneFileName)
 {
-	return true;
+    std::unique_ptr<LandscapesScene> scene = std::make_unique<LandscapesScene>(
+		m_UI,
+		GetDevice(),
+        *m_ShaderFactory, 
+        fs, 
+        m_TextureCache, 
+        nullptr, 
+        nullptr);
+
+    if (sceneFileName.empty())
+    {
+	    return false;
+    }
+    else if (scene->Load(sceneFileName))
+    {
+	    m_Scene = std::move(scene);
+        return true;
+    }
+
+	return false;
+}
+
+void LandscapesApplication::SceneLoaded()
+{
+	ApplicationBase::SceneLoaded();
+
+    m_Scene->FinishedLoading(GetFrameIndex());
+
+    // Set up lights, camera, etc...
 }
 
 bool LandscapesApplication::KeyboardUpdate(int key, int scancode, int action, int mods)
@@ -121,8 +144,6 @@ void LandscapesApplication::Animate(float fElapsedTimeSeconds)
     m_Camera.Animate(fElapsedTimeSeconds);
 	GetDeviceManager()->SetInformativeWindowTitle(g_WindowTitle);
 
-    m_Scene->Animate(fElapsedTimeSeconds);
-
     m_UI.CameraPosition = m_Camera.GetPosition();
 }
 
@@ -133,6 +154,12 @@ void LandscapesApplication::BackBufferResizing()
 
 void LandscapesApplication::Render(nvrhi::IFramebuffer* framebuffer)
 {
+	if (!m_Scene)
+	{
+        // Nothing to render
+		return;
+	}
+
     const auto& fbInfo = framebuffer->getFramebufferInfo();
 
     nvrhi::Viewport windowViewport(static_cast<float>(fbInfo.width), static_cast<float>(fbInfo.height));

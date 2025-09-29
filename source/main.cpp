@@ -36,7 +36,12 @@ int main(int __argc, const char** __argv)
         auto application = std::make_shared<LandscapesApplication>(deviceManager, m_UI);
         auto uiRenderer = std::make_shared<UIRenderer>(deviceManager, application, m_UI);
 
-        if (application->Init() && uiRenderer->Init(application->GetShaderFactory()))
+        if (!uiRenderer->Init(application->GetShaderFactory()))
+        {
+	        log::fatal("Failed to initialize UI renderer.");
+            return 1;
+        }
+
         {
             deviceManager->AddRenderPassToBack(application.get());
             deviceManager->AddRenderPassToBack(uiRenderer.get());
