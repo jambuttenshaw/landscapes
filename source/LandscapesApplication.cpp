@@ -118,6 +118,30 @@ void LandscapesApplication::SceneLoaded()
     m_Scene->FinishedLoading(GetFrameIndex());
 
     // Set up lights, camera, etc...
+
+    for (auto light : m_Scene->GetSceneGraph()->GetLights())
+    {
+        if (light->GetLightType() == LightType_Directional)
+        {
+            m_SunLight = std::static_pointer_cast<donut::engine::DirectionalLight>(light);
+            if (m_SunLight->irradiance <= 0.f)
+                m_SunLight->irradiance = 1.f;
+            break;
+        }
+    }
+
+    if (!m_SunLight)
+    {
+        m_SunLight = std::make_shared<donut::engine::DirectionalLight>();
+        m_SunLight->angularSize = 0.53f;
+        m_SunLight->irradiance = 1.f;
+
+        auto node = std::make_shared<donut::engine::SceneGraphNode>();
+        node->SetLeaf(m_SunLight);
+        m_SunLight->SetDirection(dm::double3(0.1, -0.9, 0.1));
+        m_SunLight->SetName("Sun");
+        m_Scene->GetSceneGraph()->Attach(m_Scene->GetSceneGraph()->GetRootNode(), node);
+    }
 }
 
 bool LandscapesApplication::KeyboardUpdate(int key, int scancode, int action, int mods)
@@ -144,6 +168,11 @@ void LandscapesApplication::Animate(float fElapsedTimeSeconds)
 	GetDeviceManager()->SetInformativeWindowTitle(g_WindowTitle);
 
     m_UI.CameraPosition = m_Camera.GetPosition();
+
+    if (m_SunLight)
+    {
+		m_SunLight->SetDirection(static_cast<dm::double3>(m_UI.LightDirection));
+    }
 }
 
 void LandscapesApplication::BackBufferResizing()
@@ -229,6 +258,23 @@ void LandscapesApplication::RenderScene(nvrhi::IFramebuffer* framebuffer)
             context
         );
     }
+
+	{
+		donut::render::InstancedOpaqueDrawStrategy drawStrategy;
+        donut::render::GBufferFillPass::Context context;
+
+        drawStrategy.PrepareForView(m_Scene->GetSceneGraph()->GetRootNode(), m_View);
+
+		render::RenderView(
+			m_CommandList,
+            &m_View,
+            &m_View,
+            m_GBuffer->GBufferFramebuffer->GetFramebuffer(m_View),
+            drawStrategy,
+            *m_GBufferPass,
+            context
+        );
+	}
 
     /*
     if (m_UI.ShowDebugPlane)

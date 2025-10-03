@@ -78,4 +78,6 @@ private:
 	std::unique_ptr<DebugPlanePass> m_DebugPlanePass;
 
 	std::unique_ptr<LandscapesScene> m_Scene;
+
+	std::shared_ptr<donut::engine::DirectionalLight> m_SunLight;
 };
