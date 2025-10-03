@@ -99,7 +99,8 @@ bool LandscapesApplication::LoadScene(std::shared_ptr<vfs::IFileSystem> fs, cons
         fs, 
         m_TextureCache, 
         nullptr, 
-        nullptr);
+        nullptr,
+        m_CommonPasses);
 
 	if (scene->Load(sceneFileName))
     {
@@ -197,7 +198,6 @@ void LandscapesApplication::RenderScene(nvrhi::IFramebuffer* framebuffer)
 
     m_GBuffer->Clear(m_CommandList);
 
-    /*
     // Update terrain
     if (m_UI.UpdateTerrain)
 	{
@@ -210,6 +210,7 @@ void LandscapesApplication::RenderScene(nvrhi::IFramebuffer* framebuffer)
             *m_TerrainTessellator
         );
     }
+
     // Draw terrain
     if (m_UI.DrawTerrain)
     {
@@ -229,6 +230,7 @@ void LandscapesApplication::RenderScene(nvrhi::IFramebuffer* framebuffer)
         );
     }
 
+    /*
     if (m_UI.ShowDebugPlane)
     {
         m_DebugPlanePass->Render(

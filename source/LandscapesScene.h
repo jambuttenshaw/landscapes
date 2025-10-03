@@ -23,7 +23,8 @@ public:
         std::shared_ptr<donut::vfs::IFileSystem> fs,
         std::shared_ptr<donut::engine::TextureCache> textureCache,
         std::shared_ptr<donut::engine::DescriptorTableManager> descriptorTable,
-        std::shared_ptr<donut::engine::SceneTypeFactory> sceneTypeFactory);
+        std::shared_ptr<donut::engine::SceneTypeFactory> sceneTypeFactory,
+        std::shared_ptr<donut::engine::CommonRenderPasses> commonPasses);
 
 protected:
 
@@ -33,4 +34,6 @@ protected:
 
 private:
     UIData& m_UI;
+
+    std::shared_ptr<PrimaryViewTerrainTessellationPass> m_TerrainTessellationPass;
 };
