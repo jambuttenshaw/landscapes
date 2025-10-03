@@ -20,7 +20,7 @@ TerrainMeshView::TerrainMeshView(const TerrainMeshInstance* parent, const Terrai
 {
 }
 
-void TerrainMeshView::Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandList)
+void TerrainMeshView::CreateBuffers(nvrhi::IDevice* device, nvrhi::ICommandList* commandList)
 {
 	cbt_Tree* cbt = cbt_CreateAtDepth(m_MaxDepth, m_InitDepth);
 
@@ -87,7 +87,7 @@ TerrainMeshInfo::TerrainMeshInfo(donut::engine::TextureCache& textureCache, cons
 	}
 }
 
-void TerrainMeshInfo::Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandList)
+void TerrainMeshInfo::CreateBuffers(nvrhi::IDevice* device, nvrhi::ICommandList* commandList)
 {
 	// Create constant buffer
 	m_TerrainCB = device->createBuffer(nvrhi::utils::CreateStaticConstantBufferDesc(
@@ -105,20 +105,39 @@ void TerrainMeshInfo::Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandL
 }
 
 
+TerrainMeshInstance::TerrainMeshInstance()
+	: MeshInstance(nullptr)
+{}
+
 TerrainMeshInstance::TerrainMeshInstance(std::shared_ptr<TerrainMeshInfo> terrain)
 	: MeshInstance(std::move(terrain))
 {
+	Create();
+}
+
+void TerrainMeshInstance::Load(const Json::Value& node)
+{
+	// Fetch TerrainMeshInfo from scene graph
+}
+
+void TerrainMeshInstance::Create()
+{
+	if (!m_Mesh)
+	{
+		log::fatal("Create called before mesh was assigned!");
+	}
+
 	for (size_t view = 0; view < Terrain().GetNumTerrainViews(); view++)
 	{
 		m_TerrainViews.emplace_back(this, Terrain().GetTerrainViewDesc(view));
 	}
 }
 
-void TerrainMeshInstance::Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandList)
+void TerrainMeshInstance::CreateBuffers(nvrhi::IDevice* device, nvrhi::ICommandList* commandList)
 {
 	for (auto& view : m_TerrainViews)
 	{
-		view.Init(device, commandList);
+		view.CreateBuffers(device, commandList);
 	}
 }
 

@@ -6,7 +6,6 @@
 
 #include "Terrain.h"
 #include "TerrainShaders.h"
-#include "UserInterface.h"
 #include "engine/ViewEx.h"
 #include "render/TerrainDrawStrategy.h"
 

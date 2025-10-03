@@ -26,7 +26,7 @@ class TerrainMeshView
 public:
 	explicit TerrainMeshView(const TerrainMeshInstance* parent, const TerrainMeshViewDesc& desc);
 
-	void Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandList);
+	void CreateBuffers(nvrhi::IDevice* device, nvrhi::ICommandList* commandList);
 
 	[[nodiscard]] inline const TerrainMeshInstance* GetInstance() const { return m_Instance; }
 	[[nodiscard]] inline nvrhi::IBuffer* GetCBTBuffer() const { return m_CBTBuffer; }
@@ -67,12 +67,13 @@ public:
 		std::vector<TerrainMeshViewDesc> Views;
 	};
 
+	TerrainMeshInfo() = default;
 	TerrainMeshInfo(
 		donut::engine::TextureCache& textureCache,
 		const CreateParams& params
 	);
 
-	void Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandList);
+	void CreateBuffers(nvrhi::IDevice* device, nvrhi::ICommandList* commandList);
 
 	[[nodiscard]] inline float2 GetExtents() const { return m_HeightmapExtents; }
 	[[nodiscard]] inline float GetHeightScale() const { return m_HeightmapHeightScale; }
@@ -105,8 +106,14 @@ private:
 class TerrainMeshInstance : public donut::engine::MeshInstance
 {
 public:
+	// Default constructor required when loading from scene graph 
+	TerrainMeshInstance();
+	// Constructor taking TerrainMeshInfo can be used when programmatically creating terrains
 	explicit TerrainMeshInstance(std::shared_ptr<TerrainMeshInfo> terrain);
-	void Init(nvrhi::IDevice* device, nvrhi::ICommandList* commandList);
+
+	virtual void Load(const Json::Value& node) override;
+
+	void CreateBuffers(nvrhi::IDevice* device, nvrhi::ICommandList* commandList);
 
 	[[nodiscard]] dm::box3 GetLocalBoundingBox() override;
 	[[nodiscard]] std::shared_ptr<SceneGraphLeaf> Clone() override;
@@ -120,6 +127,11 @@ public:
 protected:
 	// Shorthand for internal use
 	TerrainMeshInfo& Terrain() const { return dynamic_cast<TerrainMeshInfo&>(*m_Mesh); }
+
+private:
+
+	// Called once TerrainMeshInstance has a TerrainMeshInfo
+	void Create();
 
 protected:
 	std::vector<TerrainMeshView> m_TerrainViews;

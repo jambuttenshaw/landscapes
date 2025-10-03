@@ -41,7 +41,7 @@ void LandscapesScene::CreateMeshBuffers(nvrhi::ICommandList* commandList)
     {
 	    if (const auto& terrainMesh = std::dynamic_pointer_cast<TerrainMeshInfo>(mesh))
 	    {
-		    terrainMesh->Init(m_Device, commandList);
+		    terrainMesh->CreateBuffers(m_Device, commandList);
 	    }
     }
 
@@ -49,7 +49,7 @@ void LandscapesScene::CreateMeshBuffers(nvrhi::ICommandList* commandList)
     {
 	    if (const auto& terrainMeshInstance = std::dynamic_pointer_cast<TerrainMeshInstance>(meshInstance))
 	    {
-		    terrainMeshInstance->Init(m_Device, commandList);
+		    terrainMeshInstance->CreateBuffers(m_Device, commandList);
 	    }
     }
 }
