@@ -3,6 +3,11 @@
 #include "terrain/Terrain.h"
 
 
+std::shared_ptr<donut::engine::SceneGraph> LandscapesSceneTypeFactory::CreateGraph()
+{
+	return std::make_shared<LandscapesSceneGraph>();
+}
+
 std::shared_ptr<donut::engine::SceneGraphLeaf> LandscapesSceneTypeFactory::CreateLeaf(const std::string& type)
 {
 	if (type == "terrainInstance")

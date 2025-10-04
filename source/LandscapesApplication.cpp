@@ -35,6 +35,7 @@ LandscapesApplication::LandscapesApplication(donut::app::DeviceManager* deviceMa
     m_CommonPasses = std::make_shared<engine::CommonRenderPasses>(GetDevice(), m_ShaderFactory);
     m_TextureCache = std::make_shared<engine::TextureCache>(GetDevice(), m_NativeFS, nullptr);
     m_BindingCache = std::make_unique<engine::BindingCache>(GetDevice());
+    m_SceneTypeFactory = std::make_shared<LandscapesSceneTypeFactory>();
 
     m_DeferredLightingPass = std::make_unique<render::DeferredLightingPass>(GetDevice(), m_CommonPasses);
     m_DeferredLightingPass->Init(m_ShaderFactory);
@@ -99,7 +100,7 @@ bool LandscapesApplication::LoadScene(std::shared_ptr<vfs::IFileSystem> fs, cons
         fs, 
         m_TextureCache, 
         nullptr, 
-        nullptr,
+        m_SceneTypeFactory,
         m_CommonPasses);
 
 	if (scene->Load(sceneFileName))

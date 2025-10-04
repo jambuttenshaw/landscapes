@@ -32,6 +32,7 @@ private:
 class LandscapesSceneTypeFactory : public donut::engine::SceneTypeFactory
 {
 public:
+	virtual std::shared_ptr<donut::engine::SceneGraph> CreateGraph() override;
 	virtual std::shared_ptr<donut::engine::SceneGraphLeaf> CreateLeaf(const std::string& type) override;
 
 	// Terrain

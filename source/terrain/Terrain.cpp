@@ -116,6 +116,8 @@ void TerrainMeshInstance::Load(const Json::Value& node)
 	m_Mesh = terrainMeshes.at(terrainMeshIndex);
 	// Reattach
 	graph->Attach(parent ? parent->shared_from_this() : nullptr, nodePtr);
+
+	Create();
 }
 
 void TerrainMeshInstance::Create()

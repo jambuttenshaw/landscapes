@@ -13,6 +13,7 @@
 
 #include "UserInterface.h"
 #include "LandscapesScene.h"
+#include "engine/LandscapesSceneGraph.h"
 
 #include "engine/ViewEx.h"
 #include "render/passes/DebugPasses.h"
@@ -78,6 +79,7 @@ private:
 	std::unique_ptr<DebugPlanePass> m_DebugPlanePass;
 
 	std::unique_ptr<LandscapesScene> m_Scene;
+	std::shared_ptr<LandscapesSceneTypeFactory> m_SceneTypeFactory;
 
 	std::shared_ptr<donut::engine::DirectionalLight> m_SunLight;
 };
