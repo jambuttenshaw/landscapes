@@ -2,7 +2,7 @@
 
 #include <nvrhi/utils.h>
 
-#include "engine/SceneGraphEx.h"
+#include "engine/LandscapesSceneGraph.h"
 
 #define CBT_IMPLEMENTATION
 #include "libcbt/cbt.h"
@@ -83,6 +83,39 @@ TerrainMeshInstance::TerrainMeshInstance(std::shared_ptr<TerrainMeshInfo> terrai
 void TerrainMeshInstance::Load(const Json::Value& node)
 {
 	// Fetch TerrainMeshInfo from scene graph
+
+	size_t terrainMeshIndex = 0; // loaded from JSON
+
+	// Get graph
+	auto nodePtr = GetNodeSharedPtr();
+	if (!nodePtr)
+	{
+		log::fatal("Failed to get node!");
+		return;
+	}
+
+	auto graph = std::dynamic_pointer_cast<LandscapesSceneGraph>(nodePtr->GetGraph());
+	if (!graph)
+	{
+		log::fatal("Failed to get graph!");
+	}
+			
+	// check valid
+	const auto& terrainMeshes = graph->GetTerrainMeshes();
+	if (terrainMeshIndex >= terrainMeshes.size())
+	{
+		log::error("Failed to load terrain mesh instance: terrain mesh index was invalid (Index = %d)", terrainMeshIndex);
+		return;
+	}
+
+	// Must re-register leaf to ensure mesh is caught by graph
+	// This can be achieved by detaching and reattaching node
+	auto parent = nodePtr->GetParent();
+	graph->Detach(nodePtr);
+	// Update mesh
+	m_Mesh = terrainMeshes.at(terrainMeshIndex);
+	// Reattach
+	graph->Attach(parent ? parent->shared_from_this() : nullptr, nodePtr);
 }
 
 void TerrainMeshInstance::Create()

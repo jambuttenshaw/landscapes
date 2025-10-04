@@ -4,8 +4,8 @@
 	],
 	"graph": [
 		{
-			"name": "Cube",
-			"model": 0
+			"name": "Terrain",
+			"type": "terrainInstance"
 		}
 	]
 }

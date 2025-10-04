@@ -1,10 +1,15 @@
-#include "SceneGraphEx.h"
+#include "LandscapesSceneGraph.h"
 
 #include "terrain/Terrain.h"
 
 
 std::shared_ptr<donut::engine::SceneGraphLeaf> LandscapesSceneTypeFactory::CreateLeaf(const std::string& type)
 {
+	if (type == "terrainInstance")
+	{
+		return CreateTerrainMeshInstance();
+	}
+
 	return SceneTypeFactory::CreateLeaf(type);
 }
 

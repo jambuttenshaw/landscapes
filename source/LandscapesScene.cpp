@@ -4,6 +4,7 @@
 #include <donut/app/ApplicationBase.h>
 
 #include "UserInterface.h"
+#include "engine/LandscapesSceneGraph.h"
 #include "terrain/TerrainTessellation.h"
 
 using namespace donut;
@@ -91,14 +92,18 @@ bool LandscapesScene::LoadCustomData(Json::Value& rootNode, tf::Executor* execut
     terrainMesh->HeightmapHeightScale = 155.23f;
     terrainMesh->HeightmapTexturePath = app::GetDirectoryWithExecutable().parent_path() / "media/test_heightmap.png";
     terrainMesh->TerrainViews.emplace_back(TerrainMeshViewDesc{ .MaxDepth = 20, .InitDepth = 10, .TessellationScheme = m_TerrainTessellationPass });
+    if (auto graph = std::dynamic_pointer_cast<LandscapesSceneGraph>(GetSceneGraph()))
+    {
+        graph->AddTerrainMesh(terrainMesh);
+    }
 
-    auto terrainNode = std::make_shared<engine::SceneGraphNode>();
-    m_SceneGraph->Attach(m_SceneGraph->GetRootNode(), terrainNode);
-    terrainNode->SetName("TerrainNode");
-
-    auto terrainInstance = std::make_shared<TerrainMeshInstance>(terrainMesh);
-    terrainNode->SetLeaf(terrainInstance);
-    terrainInstance->SetName("TerrainMeshInstance");
+    //auto terrainNode = std::make_shared<engine::SceneGraphNode>();
+    //m_SceneGraph->Attach(m_SceneGraph->GetRootNode(), terrainNode);
+    //terrainNode->SetName("TerrainNode");
+    //
+    //auto terrainInstance = std::make_shared<TerrainMeshInstance>(terrainMesh);
+    //terrainNode->SetLeaf(terrainInstance);
+    //terrainInstance->SetName("TerrainMeshInstance");
 
     return true;
 }

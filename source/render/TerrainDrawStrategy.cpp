@@ -3,7 +3,7 @@
 #include <donut/render/GeometryPasses.h>
 
 #include "terrain/Terrain.h"
-#include "engine/SceneGraphEx.h"
+#include "engine/LandscapesSceneGraph.h"
 #include "engine/ViewEx.h"
 
 

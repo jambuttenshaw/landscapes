@@ -10,7 +10,7 @@ enum struct SceneContentFlagsEx : uint32_t
 };
 
 
-class TerrainMeshInfo;
+struct TerrainMeshInfo;
 class TerrainMeshInstance;
 
 
@@ -20,10 +20,12 @@ public:
 	LandscapesSceneGraph() = default;
 	~LandscapesSceneGraph() = default;
 
-	[[nodiscard]] const donut::engine::ResourceTracker<TerrainMeshInfo>& GetTerrainMeshes() const { return TerrainMeshes; }
+	[[nodiscard]] const std::vector<std::shared_ptr<TerrainMeshInfo>>& GetTerrainMeshes() const { return m_TerrainMeshes; }
+
+	void AddTerrainMesh(std::shared_ptr<TerrainMeshInfo> terrainMesh) { m_TerrainMeshes.emplace_back(std::move(terrainMesh)); }
 
 private:
-	donut::engine::ResourceTracker<TerrainMeshInfo> TerrainMeshes;
+	std::vector<std::shared_ptr<TerrainMeshInfo>> m_TerrainMeshes;
 };
 
 
