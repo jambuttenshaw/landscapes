@@ -70,41 +70,6 @@ void TerrainMeshView::CreateBuffers(nvrhi::IDevice* device, nvrhi::ICommandList*
 }
 
 
-TerrainMeshInfo::TerrainMeshInfo(donut::engine::TextureCache& textureCache, const CreateParams& params)
-	: m_TerrainViews(params.Views)
-{
-	buffers = std::make_shared<engine::BufferGroup>();
-
-	m_HeightmapExtents = params.HeightmapExtents;
-	m_HeightmapResolution = params.HeightmapResolution;
-	m_HeightmapHeightScale = params.HeightmapHeightScale;
-	m_HeightmapMetersPerPixel = params.HeightmapExtents / static_cast<float2>(m_HeightmapResolution);
-
-	// Load textures for the terrain
-	if (!params.HeightmapTexturePath.empty())
-	{
-		m_HeightmapTexture = textureCache.LoadTextureFromFileDeferred(params.HeightmapTexturePath, true);
-	}
-}
-
-void TerrainMeshInfo::CreateBuffers(nvrhi::IDevice* device, nvrhi::ICommandList* commandList)
-{
-	// Create constant buffer
-	m_TerrainCB = device->createBuffer(nvrhi::utils::CreateStaticConstantBufferDesc(
-		sizeof(TerrainConstants), "TerrainConstants"
-	));
-
-	TerrainConstants terrainConstants;
-	terrainConstants.TerrainExtentsAndInvExtents = float4(m_HeightmapExtents, 1.0f / m_HeightmapExtents);
-	terrainConstants.HeightmapResolutionAndInvResolution = float4(static_cast<float2>(m_HeightmapResolution), 1.0f / static_cast<float2>(m_HeightmapResolution));
-	terrainConstants.HeightScaleAndInvScale = float2(m_HeightmapHeightScale, 1.0f / m_HeightmapHeightScale);
-
-	commandList->beginTrackingBufferState(m_TerrainCB, nvrhi::ResourceStates::CopyDest);
-	commandList->writeBuffer(m_TerrainCB, &terrainConstants, sizeof(terrainConstants));
-	commandList->setPermanentBufferState(m_TerrainCB, nvrhi::ResourceStates::ConstantBuffer);
-}
-
-
 TerrainMeshInstance::TerrainMeshInstance()
 	: MeshInstance(nullptr)
 {}
@@ -127,9 +92,9 @@ void TerrainMeshInstance::Create()
 		log::fatal("Create called before mesh was assigned!");
 	}
 
-	for (size_t view = 0; view < Terrain().GetNumTerrainViews(); view++)
+	for (const auto& terrainView : Terrain().TerrainViews)
 	{
-		m_TerrainViews.emplace_back(this, Terrain().GetTerrainViewDesc(view));
+		m_TerrainViews.emplace_back(this, terrainView);
 	}
 }
 
@@ -143,8 +108,8 @@ void TerrainMeshInstance::CreateBuffers(nvrhi::IDevice* device, nvrhi::ICommandL
 
 box3 TerrainMeshInstance::GetLocalBoundingBox()
 {
-	float2 extents = Terrain().GetExtents();
-	float height = Terrain().GetHeightScale();
+	float2 extents = Terrain().HeightmapExtents;
+	float height = Terrain().HeightmapHeightScale;
 
 	return {
 		{ -0.5f * extents.x,   0.0f, -0.5f * extents.y },

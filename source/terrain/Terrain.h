@@ -51,55 +51,23 @@ protected:
 };
 
 
-class TerrainMeshInfo : public donut::engine::MeshInfo
+struct TerrainMeshInfo : public donut::engine::MeshInfo
 {
-public:
-	
-	struct CreateParams
-	{
-		// Heightmap parameters
-		float2 HeightmapExtents = float2{ 512, 512 };
-		uint2 HeightmapResolution = uint2{ 256, 256 };
-		float HeightmapHeightScale = 100.0f;
-		std::filesystem::path HeightmapTexturePath;
-
-		// Mesh view descriptions
-		std::vector<TerrainMeshViewDesc> Views;
-	};
-
-	TerrainMeshInfo() = default;
-	TerrainMeshInfo(
-		donut::engine::TextureCache& textureCache,
-		const CreateParams& params
-	);
-
-	void CreateBuffers(nvrhi::IDevice* device, nvrhi::ICommandList* commandList);
-
-	[[nodiscard]] inline float2 GetExtents() const { return m_HeightmapExtents; }
-	[[nodiscard]] inline float GetHeightScale() const { return m_HeightmapHeightScale; }
-
-	[[nodiscard]] inline size_t GetNumTerrainViews() const { return m_TerrainViews.size(); }
-	[[nodiscard]] inline const TerrainMeshViewDesc& GetTerrainViewDesc(size_t viewIndex) const { return m_TerrainViews.at(viewIndex); }
-
-	[[nodiscard]] nvrhi::TextureHandle GetHeightmapTexture() const { return m_HeightmapTexture->texture; }
-	[[nodiscard]] nvrhi::BufferHandle GetConstantBuffer() const { return m_TerrainCB; }
-
-private:
 	// The width and height of the entire terrain in real-world units, e.g. meters
-	float2 m_HeightmapExtents;
-	float m_HeightmapHeightScale = 1.;
-	// The number of pixels in the heightmap
-	uint2 m_HeightmapResolution;
-	// The number of meters each pixel in the heightmap corresponds to
-	float2 m_HeightmapMetersPerPixel;
+	float2 HeightmapExtents{ 1.0f, 1.0f };
+	float HeightmapHeightScale{ 1.0f };
+	// The number of pixels in the heightmap texture (TODO: Could just acquire from texture object?)
+	uint2 HeightmapResolution;
+
+	std::filesystem::path HeightmapTexturePath;
 
 	// The terrain effectively requires a different mesh for different types of view as different views will use different tessellation schemes
 	// We store the descriptions of the views we want to create
-	std::vector<TerrainMeshViewDesc> m_TerrainViews;
+	std::vector<TerrainMeshViewDesc> TerrainViews;
 
 	// GPU resources
-	std::shared_ptr<donut::engine::LoadedTexture> m_HeightmapTexture;
-	nvrhi::BufferHandle m_TerrainCB;
+	std::shared_ptr<donut::engine::LoadedTexture> HeightmapTexture;
+	nvrhi::BufferHandle TerrainCB;
 };
 
 

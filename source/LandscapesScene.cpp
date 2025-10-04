@@ -1,5 +1,6 @@
 #include "LandscapesScene.h"
 
+#include <nvrhi/utils.h>
 #include <donut/app/ApplicationBase.h>
 
 #include "UserInterface.h"
@@ -7,6 +8,8 @@
 
 using namespace donut;
 using namespace donut::math;
+
+#include "TerrainShaders.h"
 
 
 LandscapesScene::LandscapesScene(
@@ -41,7 +44,33 @@ void LandscapesScene::CreateMeshBuffers(nvrhi::ICommandList* commandList)
     {
 	    if (const auto& terrainMesh = std::dynamic_pointer_cast<TerrainMeshInfo>(mesh))
 	    {
-		    terrainMesh->CreateBuffers(m_Device, commandList);
+            if (!terrainMesh->buffers)
+            {
+                terrainMesh->buffers = std::make_shared<engine::BufferGroup>();
+            }
+
+            if (!terrainMesh->HeightmapTexture)
+            {
+                terrainMesh->HeightmapTexture = m_TextureCache->LoadTextureFromFileDeferred(terrainMesh->HeightmapTexturePath, true);
+            }
+
+            if (!terrainMesh->TerrainCB)
+            {
+                terrainMesh->TerrainCB = m_Device->createBuffer(nvrhi::utils::CreateStaticConstantBufferDesc(
+                    sizeof(TerrainConstants), "TerrainConstants"
+                ));
+
+                TerrainConstants terrainConstants;
+                terrainConstants.TerrainExtentsAndInvExtents = float4(terrainMesh->HeightmapExtents, 1.0f / terrainMesh->HeightmapExtents);
+                terrainConstants.HeightmapResolutionAndInvResolution = float4(
+			    		static_cast<float2>(terrainMesh->HeightmapResolution),
+			    		1.0f / static_cast<float2>(terrainMesh->HeightmapResolution));
+                terrainConstants.HeightScaleAndInvScale = float2(terrainMesh->HeightmapHeightScale, 1.0f / terrainMesh->HeightmapHeightScale);
+
+                commandList->beginTrackingBufferState(terrainMesh->TerrainCB, nvrhi::ResourceStates::CopyDest);
+                commandList->writeBuffer(terrainMesh->TerrainCB, &terrainConstants, sizeof(terrainConstants));
+                commandList->setPermanentBufferState(terrainMesh->TerrainCB, nvrhi::ResourceStates::ConstantBuffer);
+            }
 	    }
     }
 
@@ -56,13 +85,12 @@ void LandscapesScene::CreateMeshBuffers(nvrhi::ICommandList* commandList)
 
 bool LandscapesScene::LoadCustomData(Json::Value& rootNode, tf::Executor* executor)
 {
-    TerrainMeshInfo::CreateParams createParams{};
-    createParams.HeightmapResolution = { 1024, 1024 };
-    createParams.HeightmapExtents = { 262.28f, 262.28f };
-    createParams.HeightmapHeightScale = 155.23f;
-    createParams.HeightmapTexturePath = app::GetDirectoryWithExecutable().parent_path() / "media/test_heightmap.png";
-    createParams.Views.emplace_back(TerrainMeshViewDesc{ .MaxDepth = 20, .InitDepth = 10, .TessellationScheme = m_TerrainTessellationPass });
-    auto terrainMesh = std::make_shared<TerrainMeshInfo>(*m_TextureCache, createParams);
+    auto terrainMesh = std::make_shared<TerrainMeshInfo>();
+    terrainMesh->HeightmapResolution = { 1024, 1024 };
+    terrainMesh->HeightmapExtents = { 262.28f, 262.28f };
+    terrainMesh->HeightmapHeightScale = 155.23f;
+    terrainMesh->HeightmapTexturePath = app::GetDirectoryWithExecutable().parent_path() / "media/test_heightmap.png";
+    terrainMesh->TerrainViews.emplace_back(TerrainMeshViewDesc{ .MaxDepth = 20, .InitDepth = 10, .TessellationScheme = m_TerrainTessellationPass });
 
     auto terrainNode = std::make_shared<engine::SceneGraphNode>();
     m_SceneGraph->Attach(m_SceneGraph->GetRootNode(), terrainNode);

@@ -228,9 +228,9 @@ nvrhi::BindingSetHandle TerrainGBufferFillPass::CreateTerrainBindingSet(const Te
 	const TerrainMeshInfo* parent = terrainView->GetInstance()->GetTerrain();
 
 	auto bindingSetDesc = nvrhi::BindingSetDesc()
-		.addItem(nvrhi::BindingSetItem::ConstantBuffer(GBUFFER_BINDING_TERRAIN_CONSTANTS, parent->GetConstantBuffer()))
+		.addItem(nvrhi::BindingSetItem::ConstantBuffer(GBUFFER_BINDING_TERRAIN_CONSTANTS, parent->TerrainCB))
 		.addItem(nvrhi::BindingSetItem::StructuredBuffer_SRV(GBUFFER_BINDING_TERRAIN_CBT, terrainView->GetCBTBuffer()))
-		.addItem(nvrhi::BindingSetItem::Texture_SRV(GBUFFER_BINDING_TERRAIN_HEIGHTMAP_TEXTURE, parent->GetHeightmapTexture()));
+		.addItem(nvrhi::BindingSetItem::Texture_SRV(GBUFFER_BINDING_TERRAIN_HEIGHTMAP_TEXTURE, parent->HeightmapTexture->texture));
 
 	return m_Device->createBindingSet(bindingSetDesc, m_TerrainBindingLayout);
 }

@@ -319,10 +319,10 @@ nvrhi::BindingSetHandle PrimaryViewTerrainTessellationPass::FindOrCreateBindingS
 
 		nvrhi::BindingSetDesc setDesc;
 		setDesc.addItem(nvrhi::BindingSetItem::PushConstants(TESSELLATION_BINDING_PUSH_CONSTANTS, sizeof(TerrainPushConstants)))
-			.addItem(nvrhi::BindingSetItem::ConstantBuffer(TESSELLATION_BINDING_TERRAIN_CONSTANTS, terrainMesh->GetConstantBuffer()))
+			.addItem(nvrhi::BindingSetItem::ConstantBuffer(TESSELLATION_BINDING_TERRAIN_CONSTANTS, terrainMesh->TerrainCB))
 			.addItem(nvrhi::BindingSetItem::StructuredBuffer_UAV(TESSELLATION_BINDING_CBT, key->GetCBTBuffer()))
 			.addItem(nvrhi::BindingSetItem::StructuredBuffer_SRV(TESSELLATION_BINDING_INSTANCE_BUFFER, terrainMesh->buffers->instanceBuffer.Get()))
-			.addItem(nvrhi::BindingSetItem::Texture_SRV(TESSELLATION_BINDING_SUBDIVISION_HEIGHTMAP, terrainMesh->GetHeightmapTexture()));
+			.addItem(nvrhi::BindingSetItem::Texture_SRV(TESSELLATION_BINDING_SUBDIVISION_HEIGHTMAP, terrainMesh->HeightmapTexture->texture));
 
 		bindingSet = m_Device->createBindingSet(setDesc, m_TerrainBindingLayout);
 
