@@ -1,6 +1,7 @@
 #include "Terrain.h"
 
 #include <nvrhi/utils.h>
+#include <json/value.h>
 
 #include "engine/LandscapesSceneGraph.h"
 
@@ -84,7 +85,12 @@ void TerrainMeshInstance::Load(const Json::Value& node)
 {
 	// Fetch TerrainMeshInfo from scene graph
 
-	size_t terrainMeshIndex = 0; // loaded from JSON
+	size_t terrainMeshIndex = 0;
+	const auto& terrainIndex = node["terrain"];
+	if (!terrainIndex.empty())
+	{
+		terrainMeshIndex = terrainIndex.asUInt64();
+	}
 
 	// Get graph
 	auto nodePtr = GetNodeSharedPtr();

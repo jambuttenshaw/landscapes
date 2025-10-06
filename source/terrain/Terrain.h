@@ -56,8 +56,6 @@ struct TerrainMeshInfo : public donut::engine::MeshInfo
 	// The width and height of the entire terrain in real-world units, e.g. meters
 	float2 HeightmapExtents{ 1.0f, 1.0f };
 	float HeightmapHeightScale{ 1.0f };
-	// The number of pixels in the heightmap texture (TODO: Could just acquire from texture object?)
-	uint2 HeightmapResolution;
 
 	std::filesystem::path HeightmapTexturePath;
 

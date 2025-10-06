@@ -1,6 +1,8 @@
 #include "LandscapesScene.h"
 
 #include <nvrhi/utils.h>
+#include <json/value.h>
+#include <donut/core/json.h>
 #include <donut/app/ApplicationBase.h>
 
 #include "UserInterface.h"
@@ -31,8 +33,9 @@ LandscapesScene::LandscapesScene(
         std::move(sceneTypeFactory)
     )
 	, m_UI(ui)
+	, m_CommonPasses(std::move(commonPasses))
 {
-    m_TerrainTessellationPass = std::make_shared<PrimaryViewTerrainTessellationPass>(device, std::move(commonPasses));
+    m_TerrainTessellationPass = std::make_shared<PrimaryViewTerrainTessellationPass>(device, m_CommonPasses);
     m_TerrainTessellationPass->Init(shaderFactory);
 }
 
@@ -52,7 +55,9 @@ void LandscapesScene::CreateMeshBuffers(nvrhi::ICommandList* commandList)
 
             if (!terrainMesh->HeightmapTexture)
             {
-                terrainMesh->HeightmapTexture = m_TextureCache->LoadTextureFromFileDeferred(terrainMesh->HeightmapTexturePath, true);
+                // TODO: This is no longer deferred as loaded texture object is accessed to get texture dimensions
+				// Texture loading can be deferred if I also defer populating CB
+                terrainMesh->HeightmapTexture = m_TextureCache->LoadTextureFromFile(terrainMesh->HeightmapTexturePath, true, m_CommonPasses.get(), commandList);
             }
 
             if (!terrainMesh->TerrainCB)
@@ -61,11 +66,15 @@ void LandscapesScene::CreateMeshBuffers(nvrhi::ICommandList* commandList)
                     sizeof(TerrainConstants), "TerrainConstants"
                 ));
 
+                const auto& desc = terrainMesh->HeightmapTexture->texture->getDesc();
+                float2 heightmapResolution{
+					static_cast<float>(desc.width),
+                    static_cast<float>(desc.height)
+                };
+
                 TerrainConstants terrainConstants;
                 terrainConstants.TerrainExtentsAndInvExtents = float4(terrainMesh->HeightmapExtents, 1.0f / terrainMesh->HeightmapExtents);
-                terrainConstants.HeightmapResolutionAndInvResolution = float4(
-			    		static_cast<float2>(terrainMesh->HeightmapResolution),
-			    		1.0f / static_cast<float2>(terrainMesh->HeightmapResolution));
+                terrainConstants.HeightmapResolutionAndInvResolution = float4(heightmapResolution, 1.0f / heightmapResolution);
                 terrainConstants.HeightScaleAndInvScale = float2(terrainMesh->HeightmapHeightScale, 1.0f / terrainMesh->HeightmapHeightScale);
 
                 commandList->beginTrackingBufferState(terrainMesh->TerrainCB, nvrhi::ResourceStates::CopyDest);
@@ -84,26 +93,75 @@ void LandscapesScene::CreateMeshBuffers(nvrhi::ICommandList* commandList)
     }
 }
 
-bool LandscapesScene::LoadCustomData(Json::Value& rootNode, tf::Executor* executor)
+bool LandscapesScene::LoadCustomData(Json::Value& rootNode, const std::filesystem::path& fileName, tf::Executor* executor)
 {
-    auto terrainMesh = std::make_shared<TerrainMeshInfo>();
-    terrainMesh->HeightmapResolution = { 1024, 1024 };
-    terrainMesh->HeightmapExtents = { 262.28f, 262.28f };
-    terrainMesh->HeightmapHeightScale = 155.23f;
-    terrainMesh->HeightmapTexturePath = app::GetDirectoryWithExecutable().parent_path() / "media/test_heightmap.png";
-    terrainMesh->TerrainViews.emplace_back(TerrainMeshViewDesc{ .MaxDepth = 20, .InitDepth = 10, .TessellationScheme = m_TerrainTessellationPass });
-    if (auto graph = std::dynamic_pointer_cast<LandscapesSceneGraph>(GetSceneGraph()))
+    auto sceneGraph = std::dynamic_pointer_cast<LandscapesSceneGraph>(GetSceneGraph());
+    if (!sceneGraph)
     {
-        graph->AddTerrainMesh(terrainMesh);
+        log::fatal("Scene graph was not of type LandscapesSceneGraph: cannot process terrains.");
+	    return false;
     }
 
-    //auto terrainNode = std::make_shared<engine::SceneGraphNode>();
-    //m_SceneGraph->Attach(m_SceneGraph->GetRootNode(), terrainNode);
-    //terrainNode->SetName("TerrainNode");
-    //
-    //auto terrainInstance = std::make_shared<TerrainMeshInstance>(terrainMesh);
-    //terrainNode->SetLeaf(terrainInstance);
-    //terrainInstance->SetName("TerrainMeshInstance");
+    LoadTerrain(rootNode["terrains"], fileName, *sceneGraph);
 
     return true;
+}
+
+void LandscapesScene::LoadTerrain(const Json::Value& terrainList, const std::filesystem::path& fileName, LandscapesSceneGraph& sceneGraph)
+{
+	for (const auto& src : terrainList)
+	{
+		if (!src.isObject())
+		{
+			log::warning("Non-object found in the terrains list.");
+            continue;
+		}
+
+        auto terrainMesh = std::make_shared<TerrainMeshInfo>();
+
+        if (const auto& extents = src["extents"]; !extents.isNull())
+	        extents >> terrainMesh->HeightmapExtents;
+
+        if (const auto& height = src["height"]; !height.isNull())
+            height >> terrainMesh->HeightmapHeightScale;
+
+        if (const auto& path = src["path"]; !path.isNull())
+        {
+	        std::string pathStr;
+            path >> pathStr;
+            terrainMesh->HeightmapTexturePath = fileName / pathStr;
+        }
+
+        for (const auto& viewSrc : src["views"])
+        {
+	        if (!viewSrc.isObject())
+	        {
+                log::warning("Non-object found in the view list.");
+                continue;
+	        }
+
+            auto& view = terrainMesh->TerrainViews.emplace_back();
+
+            if (const auto& maxDepth = viewSrc["maxDepth"]; !maxDepth.isNull())
+                maxDepth >> view.MaxDepth;
+
+            if (const auto& initDepth = viewSrc["initDepth"]; !initDepth.isNull())
+                initDepth >> view.InitDepth;
+
+            const auto& tessellationScheme = viewSrc["tessellationScheme"];
+            if (!tessellationScheme.isNull() && tessellationScheme.isString())
+            {
+	            if (tessellationScheme == "primary")
+	            {
+		            view.TessellationScheme = m_TerrainTessellationPass;
+	            }
+                else
+                {
+	                log::warning("Unknown tessellation scheme: '%s'", tessellationScheme.asCString());
+                }
+            }
+        }
+
+        sceneGraph.AddTerrainMesh(std::move(terrainMesh));
+	}
 }

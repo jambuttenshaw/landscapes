@@ -5,7 +5,23 @@
 	"graph": [
 		{
 			"name": "Terrain",
-			"type": "terrainInstance"
+			"type": "terrainInstance",
+			"terrain":  0
+		}
+	],
+	// Custom data
+	"terrains": [
+		{
+			"extents": [ 262.28, 262.28 ],
+			"height": 155.23,
+			"path": "test_heightmap.png",
+			"views": [
+				{
+					"maxDepth": 20,
+					"initDepth": 10,
+					"tessellationScheme": "primary"
+				}
+			]
 		}
 	]
 }
