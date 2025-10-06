@@ -39,6 +39,5 @@ private:
 private:
     UIData& m_UI;
 
-    std::shared_ptr<donut::engine::CommonRenderPasses> m_CommonPasses;
     std::shared_ptr<PrimaryViewTerrainTessellationPass> m_TerrainTessellationPass;
 };

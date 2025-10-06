@@ -33,9 +33,8 @@ LandscapesScene::LandscapesScene(
         std::move(sceneTypeFactory)
     )
 	, m_UI(ui)
-	, m_CommonPasses(std::move(commonPasses))
 {
-    m_TerrainTessellationPass = std::make_shared<PrimaryViewTerrainTessellationPass>(device, m_CommonPasses);
+    m_TerrainTessellationPass = std::make_shared<PrimaryViewTerrainTessellationPass>(device, std::move(commonPasses));
     m_TerrainTessellationPass->Init(shaderFactory);
 }
 
@@ -55,9 +54,7 @@ void LandscapesScene::CreateMeshBuffers(nvrhi::ICommandList* commandList)
 
             if (!terrainMesh->HeightmapTexture)
             {
-                // TODO: This is no longer deferred as loaded texture object is accessed to get texture dimensions
-				// Texture loading can be deferred if I also defer populating CB
-                terrainMesh->HeightmapTexture = m_TextureCache->LoadTextureFromFile(terrainMesh->HeightmapTexturePath, true, m_CommonPasses.get(), commandList);
+                terrainMesh->HeightmapTexture = m_TextureCache->LoadTextureFromFileDeferred(terrainMesh->HeightmapTexturePath, true);
             }
 
             if (!terrainMesh->TerrainCB)
@@ -66,10 +63,11 @@ void LandscapesScene::CreateMeshBuffers(nvrhi::ICommandList* commandList)
                     sizeof(TerrainConstants), "TerrainConstants"
                 ));
 
-                const auto& desc = terrainMesh->HeightmapTexture->texture->getDesc();
-                float2 heightmapResolution{
-					static_cast<float>(desc.width),
-                    static_cast<float>(desc.height)
+                // LoadTextureFromFileDeferred always returns a shared pointer to TextureData
+                const auto& textureData = std::static_pointer_cast<engine::TextureData>(terrainMesh->HeightmapTexture);
+                float2 heightmapResolution {
+					static_cast<float>(textureData->width),
+                    static_cast<float>(textureData->height)
                 };
 
                 TerrainConstants terrainConstants;
