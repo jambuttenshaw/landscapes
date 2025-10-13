@@ -60,6 +60,9 @@ private:
 	std::shared_ptr<donut::engine::ShaderFactory> m_ShaderFactory;
 	std::unique_ptr<donut::engine::BindingCache> m_BindingCache;
 
+	std::shared_ptr<donut::engine::DescriptorTableManager> m_DescriptorTableManager;
+	nvrhi::BindingLayoutHandle m_BindlessLayout;
+
 	nvrhi::CommandListHandle m_CommandList;
 
 	donut::app::FirstPersonCamera m_Camera;
@@ -75,8 +78,6 @@ private:
 
 	std::unique_ptr<donut::render::DeferredLightingPass> m_DeferredLightingPass;
 	std::unique_ptr<GBufferVisualizationPass> m_GBufferVisualizationPass;
-
-	std::unique_ptr<DebugPlanePass> m_DebugPlanePass;
 
 	std::unique_ptr<LandscapesScene> m_Scene;
 	std::shared_ptr<LandscapesSceneTypeFactory> m_SceneTypeFactory;

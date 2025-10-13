@@ -33,7 +33,21 @@ LandscapesApplication::LandscapesApplication(donut::app::DeviceManager* deviceMa
 
     m_ShaderFactory = std::make_shared<engine::ShaderFactory>(GetDevice(), rootFS, "/shaders");
     m_CommonPasses = std::make_shared<engine::CommonRenderPasses>(GetDevice(), m_ShaderFactory);
-    m_TextureCache = std::make_shared<engine::TextureCache>(GetDevice(), m_NativeFS, nullptr);
+
+    {
+        nvrhi::BindlessLayoutDesc bindlessLayoutDesc;
+        bindlessLayoutDesc.visibility = nvrhi::ShaderType::All;
+        bindlessLayoutDesc.firstSlot = 0;
+        bindlessLayoutDesc.maxCapacity = 1024;
+        bindlessLayoutDesc.registerSpaces = {
+            nvrhi::BindingLayoutItem::RawBuffer_SRV(1),
+            nvrhi::BindingLayoutItem::Texture_SRV(2)
+        };
+        m_BindlessLayout = GetDevice()->createBindlessLayout(bindlessLayoutDesc);
+		m_DescriptorTableManager = std::make_shared<engine::DescriptorTableManager>(GetDevice(), m_BindlessLayout);
+    }
+
+    m_TextureCache = std::make_shared<engine::TextureCache>(GetDevice(), m_NativeFS, m_DescriptorTableManager);
     m_BindingCache = std::make_unique<engine::BindingCache>(GetDevice());
     m_SceneTypeFactory = std::make_shared<LandscapesSceneTypeFactory>();
 
@@ -42,9 +56,6 @@ LandscapesApplication::LandscapesApplication(donut::app::DeviceManager* deviceMa
 
     m_GBufferVisualizationPass = std::make_unique<GBufferVisualizationPass>(GetDevice());
     m_GBufferVisualizationPass->Init(m_ShaderFactory);
-
-    m_DebugPlanePass = std::make_unique<DebugPlanePass>(GetDevice());
-    m_DebugPlanePass->Init(m_ShaderFactory);
 
     m_TerrainTessellator = std::make_unique<TerrainTessellator>(GetDevice());
     m_TerrainTessellator->Init(*m_ShaderFactory);
@@ -208,7 +219,6 @@ void LandscapesApplication::RenderScene(nvrhi::IFramebuffer* framebuffer)
         m_BindingCache->Clear();
         m_DeferredLightingPass->ResetBindingCache();
         m_GBufferVisualizationPass->ResetBindingCache();
-        m_DebugPlanePass->ResetPipeline();
 
         m_GBufferPass.reset();
 
@@ -260,6 +270,7 @@ void LandscapesApplication::RenderScene(nvrhi::IFramebuffer* framebuffer)
         );
     }
 
+    // Draw opaque objects in scene
 	{
 		donut::render::InstancedOpaqueDrawStrategy drawStrategy;
         donut::render::GBufferFillPass::Context context;
@@ -276,19 +287,6 @@ void LandscapesApplication::RenderScene(nvrhi::IFramebuffer* framebuffer)
             context
         );
 	}
-
-    /*
-    if (m_UI.ShowDebugPlane)
-    {
-        m_DebugPlanePass->Render(
-	    	m_CommandList, 
-            m_View, 
-            m_GBuffer->GBufferFramebuffer->GetFramebuffer(m_View),
-            m_UI.DebugPlaneNormal,
-            m_UI.DebugPlaneOrigin
-        );
-    }
-	*/
 
     render::DeferredLightingPass::Inputs deferredInputs;
     deferredInputs.SetGBuffer(*m_GBuffer);

@@ -5,8 +5,6 @@
 #include <donut/engine/ShaderFactory.h>
 #include <donut/engine/Scene.h>
 
-#include "terrain/Terrain.h"
-
 
 struct UIData;
 

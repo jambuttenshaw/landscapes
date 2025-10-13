@@ -7,6 +7,8 @@
 
 #include "UserInterface.h"
 #include "engine/LandscapesSceneGraph.h"
+
+#include "terrain/Terrain.h"
 #include "terrain/TerrainTessellation.h"
 
 using namespace donut;

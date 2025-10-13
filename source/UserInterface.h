@@ -17,9 +17,9 @@ enum class ViewModes : uint8_t
 // Data shared between the application layer and the user interface layer
 struct UIData
 {
-	ViewModes ViewMode = ViewModes::Unlit;
+	ViewModes ViewMode = ViewModes::Lit;
 
-	bool Wireframe = true;
+	bool Wireframe = false;
 
 	bool UpdateTerrain = true;
 	bool DrawTerrain = true;
@@ -27,14 +27,9 @@ struct UIData
 	donut::math::float3 CameraPosition;
 	donut::math::float3 LightDirection;
 
-	bool ShowDebugPlane = false;
-	donut::math::float3 DebugPlaneOrigin = { 0, 0, 0 };
-	donut::math::float3 DebugPlaneNormal;
-
 	UIData()
 	{
 		LightDirection = donut::math::sphericalToCartesian(0.0f, -0.7f, 1.0f);
-		DebugPlaneNormal = donut::math::sphericalToCartesian(0.0f, -1.569f, 1.0f);
 	}
 };
 
