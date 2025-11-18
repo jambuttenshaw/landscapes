@@ -4,14 +4,6 @@
 #include <donut/render/GeometryPasses.h>
 
 
-class TerrainMeshView;
-
-struct TerrainDrawItem : public donut::render::DrawItem
-{
-    const TerrainMeshView* terrainView;
-};
-
-
 class TerrainDrawStrategy : public donut::render::IDrawStrategy
 {
 public:
@@ -22,6 +14,6 @@ public:
 private:
     donut::engine::SceneGraphWalker m_Walker{};
 
-    std::vector<TerrainDrawItem> m_DrawItems;
-    std::vector<TerrainDrawItem>::iterator m_NextItem;
+    std::vector<donut::render::DrawItem> m_DrawItems;
+    std::vector<donut::render::DrawItem>::iterator m_NextItem;
 };

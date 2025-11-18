@@ -29,7 +29,7 @@ public:
     };
 
 public:
-    ITerrainTessellationPass(nvrhi::DeviceHandle device, std::shared_ptr<donut::engine::CommonRenderPasses> commonPasses);
+    ITerrainTessellationPass(nvrhi::DeviceHandle device);
     virtual ~ITerrainTessellationPass() = default;
 
     virtual void Init(donut::engine::ShaderFactory& shaderFactory) = 0;
@@ -40,7 +40,6 @@ public:
 
 protected:
     nvrhi::DeviceHandle m_Device;
-    std::shared_ptr<donut::engine::CommonRenderPasses> m_CommonPasses;
 };
 
 class TerrainTessellator
@@ -115,6 +114,8 @@ private:
     nvrhi::BindingSetHandle FindOrCreateBindingSet(const TerrainMeshView* key);
 
 private:
+    std::shared_ptr<donut::engine::CommonRenderPasses> m_CommonPasses;
+
     nvrhi::ShaderHandle m_SplitShader, m_MergeShader;
     nvrhi::ComputePipelineHandle m_SplitPipeline, m_MergePipeline;
 

@@ -31,7 +31,7 @@ void TerrainDrawStrategy::PrepareForView(const std::shared_ptr<donut::engine::Sc
 			{
 				if (auto terrainInstance = dynamic_cast<TerrainMeshInstance*>(m_Walker->GetLeaf().get()))
 				{
-					TerrainDrawItem& drawItem = m_DrawItems.emplace_back();
+					donut::render::DrawItem& drawItem = m_DrawItems.emplace_back();
 					drawItem.instance = terrainInstance;
 					drawItem.mesh = terrainInstance->GetMesh().get();
 					drawItem.geometry = nullptr; // is generated dynamically from the CBT
@@ -40,7 +40,7 @@ void TerrainDrawStrategy::PrepareForView(const std::shared_ptr<donut::engine::Sc
 					drawItem.distanceToCamera = 0;
 					drawItem.cullMode = nvrhi::RasterCullMode::Front; // LEB creates vertices in opposite winding order
 
-					drawItem.terrainView = terrainInstance->GetTerrainView(viewEx.GetTerrainViewIndex());
+					drawItem.userData = (void*)terrainInstance->GetTerrainView(viewEx.GetTerrainViewIndex());
 				}
 			}
 		}

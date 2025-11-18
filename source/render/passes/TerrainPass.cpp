@@ -257,21 +257,20 @@ void RenderTerrainView(
 	state.viewport = view->GetViewportState();
 	state.shadingRateState = view->GetVariableRateShadingState();
 
-	while (auto abstractDrawItem = drawStrategy.GetNextItem())
+	while (auto drawItem = drawStrategy.GetNextItem())
 	{
-		// TODO: This is not safe.
-		auto drawItem = reinterpret_cast<const TerrainDrawItem*>(abstractDrawItem);
-		if (!drawItem)
+		if (!drawItem->userData)
 			continue;
+		auto terrainView = static_cast<const TerrainMeshView*>(drawItem->userData);
 
 		const TerrainMeshInstance* terrainInstance = dynamic_cast<const TerrainMeshInstance*>(drawItem->instance);
 		if (!terrainInstance)
 			continue;
 
 		pass.SetupPipeline(passContext, drawItem->cullMode, state);
-		pass.SetupBindings(passContext, drawItem->buffers, drawItem->terrainView, state);
+		pass.SetupBindings(passContext, drawItem->buffers, terrainView, state);
 
-		state.indirectParams = drawItem->terrainView->GetIndirectArgsBuffer();
+		state.indirectParams = terrainView->GetIndirectArgsBuffer();
 
 		commandList->setGraphicsState(state);
 

@@ -10,9 +10,8 @@
 #include "render/TerrainDrawStrategy.h"
 
 
-ITerrainTessellationPass::ITerrainTessellationPass(nvrhi::DeviceHandle device, std::shared_ptr<donut::engine::CommonRenderPasses> commonPasses)
+ITerrainTessellationPass::ITerrainTessellationPass(nvrhi::DeviceHandle device)
 	: m_Device(std::move(device))
-	, m_CommonPasses(std::move(commonPasses))
 {
 }
 
@@ -208,8 +207,8 @@ void TerrainTessellator::ExecutePassForTerrainView(
 
 
 PrimaryViewTerrainTessellationPass::PrimaryViewTerrainTessellationPass(nvrhi::DeviceHandle device, std::shared_ptr<donut::engine::CommonRenderPasses> commonPasses)
-	: ITerrainTessellationPass(std::move(device)
-	, std::move(commonPasses))
+	: ITerrainTessellationPass(std::move(device))
+	, m_CommonPasses(std::move(commonPasses))
 {
 }
 
@@ -344,21 +343,20 @@ void TessellateTerrainView(
 
 	drawStrategy.PrepareForView(rootNode, *view);
 
-	while (auto abstractDrawItem = drawStrategy.GetNextItem())
+	while (auto drawItem = drawStrategy.GetNextItem())
 	{
-		// TODO: This is not safe.
-		auto drawItem = reinterpret_cast<const TerrainDrawItem*>(abstractDrawItem);
-		if (!drawItem)
+		if (!drawItem->userData)
 			continue;
+		auto terrainView = static_cast<const TerrainMeshView*>(drawItem->userData);
 
 		// If tessellation scheme of terrain view was never set, then the returned shared_ptr will be empty (and evaluate to false)
-		if (auto pass = drawItem->terrainView->GetTessellationScheme().lock())
+		if (auto pass = terrainView->GetTessellationScheme().lock())
 		{
 			tessellator.ExecutePassForTerrainView(
 				commandList,
 				view,
 				*pass,
-				drawItem->terrainView
+				terrainView
 			);
 		}
 	}
